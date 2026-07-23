@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rutina">
+<meta name="theme-color" content="#12151a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>Rutina</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#12151a;--card:#1c2128;--card2:#232a33;--line:#2b323b;--ink:#eef1f5;--mut:#8a94a1;
+--pom:#5b8def;--class:#f4746b;--gym:#e0533d;--kine:#7a6cc4;--read:#c77dbb;--soc:#7fb8d8;
+--psi:#3fae7a;--rest:#9aa3ad;--plan:#e8b93c;--gold:#e8b93c;--ok:#3fae7a;--bad:#e0736d}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;
+max-width:700px;margin:0 auto;padding:16px 13px 80px}
+h1{font-size:21px;font-weight:800;letter-spacing:-.02em}
+.date{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--mut);margin-top:3px}
+.tabs{display:flex;gap:4px;margin:14px 0 16px;background:var(--card);padding:4px;border-radius:12px}
+.tab{flex:1;padding:9px 2px;text-align:center;font-size:12px;font-weight:600;border-radius:9px;cursor:pointer;color:var(--mut)}
+.tab.on{background:var(--card2);color:var(--ink)}
+.pane{display:none}.pane.on{display:block}
+h2{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut);margin:18px 0 8px}
+.row{display:flex;gap:7px;margin-bottom:14px}
+.sc{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+.sc .lab{font-family:"IBM Plex Mono",monospace;font-size:8px;color:var(--mut);letter-spacing:.08em;text-transform:uppercase}
+.sc .val{font-size:21px;font-weight:800;margin-top:2px;line-height:1}
+.sc .val small{font-size:10px;color:var(--mut);font-weight:500}
+/* bloques */
+.blk{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 11px;
+margin-bottom:7px;display:flex;gap:10px;align-items:center}
+.blk.full{background:#182a22;border-color:#3a6b4e}
+.blk.part{background:#2a2718;border-color:#5e5a30}
+.tag{width:4px;align-self:stretch;border-radius:3px;flex:none}
+.bi{flex:1;min-width:0}
+.bt{font-weight:700;font-size:13.5px;line-height:1.2}
+.bh{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--mut);margin-top:2px}
+.bb{display:flex;gap:5px;flex:none}
+.cb{width:32px;height:32px;border-radius:9px;border:1.5px solid var(--line);background:transparent;
+color:var(--mut);cursor:pointer;font-size:14px;font-family:inherit;font-weight:700}
+.cb.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.cb.hf.on{background:var(--gold);border-color:var(--gold);color:#2a2410}
+/* deuda */
+.deu{border-radius:13px;padding:12px;margin-bottom:9px;font-size:12.5px;line-height:1.5}
+.deu.ok{background:#1a2f24;border:1px solid #3a6b4e}
+.deu.warn{background:#2f2a18;border:1px solid #6b5c2a}
+.deu.bad{background:#3a2226;border:1px solid #6b3a42}
+.deu b{font-size:14px}
+/* carga */
+.modes{display:flex;gap:6px;margin-top:8px}
+.mode{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 4px;
+text-align:center;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--mut)}
+.mode.on{border-color:var(--pom);background:#1d2942;color:var(--ink)}
+.mode small{display:block;font-family:"IBM Plex Mono",monospace;font-size:8.5px;margin-top:2px;opacity:.75;font-weight:400}
+/* barras */
+.bar{height:8px;background:#252c35;border-radius:4px;overflow:hidden;margin-top:5px;display:flex}
+.bar i{display:block;height:100%}
+.pr{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:7px}
+.pr .top{display:flex;justify-content:space-between;gap:9px;align-items:baseline}
+.pr .nm{font-weight:700;font-size:13px}
+.pr .vv{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600}
+/* calendario */
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.mh b{font-size:14.5px;text-transform:capitalize}
+.nav{background:var(--card);border:1px solid var(--line);color:var(--ink);width:31px;height:31px;border-radius:9px;cursor:pointer;font-size:14px;font-family:inherit}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cd{font-family:"IBM Plex Mono",monospace;font-size:8px;color:var(--mut);text-align:center;padding-bottom:2px}
+.cell{aspect-ratio:1;background:var(--card);border:1px solid var(--line);border-radius:8px;
+display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.cell.off{opacity:.2;cursor:default}
+.cell.today{border-color:var(--gold)}
+.cell .n{font-size:10.5px;font-weight:600}
+.cell .pc{font-family:"IBM Plex Mono",monospace;font-size:7.5px;color:var(--mut);margin-top:1px}
+.cell.f{background:#1a2f24;border-color:#3a6b4e}
+.cell.p{background:#2a2718;border-color:#5e5a30}
+.cell.z{background:#2e2024;border-color:#5c3239}
+.note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px;
+font-size:11.5px;color:var(--mut);line-height:1.6;margin-top:12px}
+.note b{color:var(--ink)}
+.btn{background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:9px;
+padding:8px 12px;font-size:11.5px;cursor:pointer;font-family:inherit;font-weight:600}
+.btn.dgr{color:var(--bad);border-color:#5c3239;background:transparent}
+.lgd{display:flex;gap:10px;flex-wrap:wrap;margin-top:9px;font-size:10px;color:var(--mut)}
+.lgd span{display:flex;align-items:center;gap:4px}
+.sq{width:10px;height:10px;border-radius:3px;display:block}
+.pre{background:#1e3328;border:1px solid #3a6b4e;border-radius:12px;padding:12px;font-size:12.5px;line-height:1.5;margin-bottom:12px}
+/* adelanto */
+.adel{display:flex;align-items:center;gap:6px;margin-top:6px}
+.adel .ab{width:24px;height:24px;border-radius:7px;border:1.5px solid var(--pom);background:transparent;color:var(--pom);cursor:pointer;font-size:15px;font-weight:700;font-family:inherit;line-height:1;display:flex;align-items:center;justify-content:center}
+.adel .ab:active{background:#1d2942}
+.adel .av{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--pom);font-weight:600}
+.adel .al{font-family:"IBM Plex Mono",monospace;font-size:8px;color:var(--mut);letter-spacing:.05em;text-transform:uppercase}
+/* super semana */
+.super{background:linear-gradient(135deg,#2d2410,#3a2e12);border:1px solid var(--gold);border-radius:13px;padding:12px 13px;margin-bottom:9px;font-size:12.5px;line-height:1.5}
+.super b{color:var(--gold);font-size:14px}
+.super .cr{font-size:20px}
+</style>
+</head>
+<body>
+
+<h1>Rutina</h1>
+<div class="date" id="fecha"></div>
+
+<div class="tabs">
+  <div class="tab on" onclick="go(0)">Hoy</div>
+  <div class="tab" onclick="go(1)">Semana</div>
+  <div class="tab" onclick="go(2)">Mes</div>
+  <div class="tab" onclick="go(3)">Datos</div>
+</div>
+
+<div class="pane on" id="p0">
+  <div id="pre"></div>
+  <div class="row">
+    <div class="sc"><div class="lab">Pomodoros hoy</div><div class="val" id="k1">0<small>/0</small></div><div id="adelbox"></div></div>
+    <div class="sc"><div class="lab">Bloques</div><div class="val" id="k2">0<small>%</small></div></div>
+    <div class="sc"><div class="lab">Deuda semana</div><div class="val" id="k3">0<small> pom</small></div></div>
+  </div>
+  <div id="deuda"></div>
+  <h2 id="htit">Cronograma de hoy</h2>
+  <div id="lista"></div>
+  <div class="note">
+    <b>Marcá el círculo lleno</b> si lo hiciste completo, o el <b>½</b> si lo hiciste a medias.
+    Un pomodoro a medias cuenta como 0,5.<br><br>
+    Los bloques que no hacés se acumulan como deuda y aparecen el fin de semana, con un techo de 4 extra por día:
+    más que eso significa que la carga de la semana fue demasiado alta, no que fallaste.<br><br>
+    <b>¿Adelantar estudio?</b> Usá el botón <b>+</b> en "Pomodoros hoy" cualquier día de semana. Primero cancela deuda; lo que sobre baja la meta del fin de semana. Si aun así el finde estudiás de más y superás la meta de la carga, aparece la <b>🔥 Super semana</b>.
+  </div>
+</div>
+
+<div class="pane" id="p1">
+  <h2>Carga de esta semana</h2>
+  <div class="note" style="margin-top:0">Elegí según cómo viene la semana. Ajusta cuántos pomodoros se esperan por día.</div>
+  <div class="modes" id="modes"></div>
+  <h2>Planificado vs. real</h2>
+  <div id="sem"></div>
+  <div class="lgd">
+    <span><i class="sq" style="background:var(--ok)"></i>Hecho</span>
+    <span><i class="sq" style="background:var(--gold)"></i>A medias</span>
+    <span><i class="sq" style="background:#252c35"></i>Pendiente</span>
+  </div>
+  <div id="resumen"></div>
+</div>
+
+<div class="pane" id="p2">
+  <div class="mh"><button class="nav" onclick="mv(-1)">&lsaquo;</button><b id="mtit"></b><button class="nav" onclick="mv(1)">&rsaquo;</button></div>
+  <div class="cal" id="cal"></div>
+  <div class="lgd">
+    <span><i class="sq" style="background:#1a2f24;border:1px solid #3a6b4e"></i>80%+</span>
+    <span><i class="sq" style="background:#2a2718;border:1px solid #5e5a30"></i>40-80%</span>
+    <span><i class="sq" style="background:#2e2024;border:1px solid #5c3239"></i>Menos de 40%</span>
+  </div>
+  <div class="note">Tocá cualquier día pasado para ver y corregir lo que hiciste.</div>
+  <div id="dayedit"></div>
+</div>
+
+<div class="pane" id="p3">
+  <h2>Cumplimiento por tipo · últimos 30 días</h2>
+  <div id="tipos"></div>
+  <h2>Pomodoros por semana</h2>
+  <div id="hist"></div>
+  <div class="note" id="insight"></div>
+  <div class="note">
+    Los datos se guardan en este dispositivo.
+    <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn" onclick="exp()">Exportar copia</button>
+      <button class="btn dgr" onclick="wipe()">Borrar todo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var PLAN={
+1:[{id:'l-gym',t:'Gimnasio',h:'07:30–08:30',k:'gym'},
+{id:'l-p1',t:'Pomodoro 1',h:'09:10–10:00',k:'pom'},
+{id:'l-p2',t:'Pomodoro 2',h:'10:10–11:00',k:'pom'},
+{id:'l-p3',t:'Pomodoro 3',h:'11:10–12:00',k:'pom'},
+{id:'l-lec',t:'Lectura no económica',h:'12:15–12:45',k:'read'},
+{id:'l-kin',t:'Kinesiología',h:'13:00–14:35',k:'kine'},
+{id:'l-cls',t:'Econometría I · Aula P',h:'15:00–17:00',k:'class'},
+{id:'l-p4',t:'Pomodoro 4 · repaso',h:'18:00–18:50',k:'pom'},
+{id:'l-p5',t:'Pomodoro 5 · repaso',h:'19:00–19:50',k:'pom'}],
+2:[{id:'m-gym',t:'Gimnasio',h:'07:30–08:30',k:'gym'},
+{id:'m-p1',t:'Pomodoro 1',h:'09:10–10:00',k:'pom'},
+{id:'m-p2',t:'Pomodoro 2',h:'10:10–11:00',k:'pom'},
+{id:'m-p3',t:'Pomodoro 3',h:'11:10–12:00',k:'pom'},
+{id:'m-lec',t:'Lectura no económica',h:'12:15–12:35',k:'read'},
+{id:'m-c1',t:'Economía Monetaria · Aula E',h:'13:00–15:00',k:'class'},
+{id:'m-c2',t:'Econometría I · Aula K',h:'15:00–17:00',k:'class'},
+{id:'m-bib',t:'Biblioteca con amigos',h:'17:00–19:00',k:'soc'},
+{id:'m-c3',t:'Macroeconomía II · Aula K',h:'19:00–21:00',k:'class'}],
+3:[{id:'x-psi',t:'Psicólogo (cada 15 días)',h:'08:00–09:00',k:'psi',opt:1},
+{id:'x-p1',t:'Pomodoro 1',h:'09:15–10:05',k:'pom'},
+{id:'x-p2',t:'Pomodoro 2',h:'10:15–11:05',k:'pom'},
+{id:'x-p3',t:'Pomodoro 3',h:'11:15–12:00',k:'pom'},
+{id:'x-lec',t:'Lectura no económica',h:'12:15–12:35',k:'read'},
+{id:'x-c1',t:'Economía Monetaria · Aula C',h:'13:00–15:00',k:'class'},
+{id:'x-kin',t:'Kinesiología',h:'15:00–16:35',k:'kine'},
+{id:'x-c2',t:'Economía Regional · Aula 11',h:'17:00–19:00',k:'class'}],
+4:[{id:'j-p1',t:'Pomodoro 1',h:'07:30–08:20',k:'pom'},
+{id:'j-p2',t:'Pomodoro 2',h:'08:30–09:20',k:'pom'},
+{id:'j-p3',t:'Pomodoro 3',h:'09:30–10:20',k:'pom'},
+{id:'j-p4',t:'Pomodoro 4',h:'10:30–11:20',k:'pom'},
+{id:'j-p5',t:'Pomodoro 5',h:'11:30–12:20',k:'pom'},
+{id:'j-kin',t:'Kinesiología',h:'13:00–14:35',k:'kine'},
+{id:'j-lec',t:'Lectura no económica',h:'14:40–15:00',k:'read'},
+{id:'j-c1',t:'Econometría I · virtual',h:'15:00–17:00',k:'class'},
+{id:'j-sie',t:'Siesta (clave: club de noche)',h:'17:00–18:30',k:'rest'},
+{id:'j-c2',t:'Macroeconomía II · virtual',h:'19:00–21:00',k:'class'},
+{id:'j-clu',t:'Club · rugby',h:'21:00–24:00',k:'gym'}],
+5:[{id:'v-gym',t:'Gimnasio',h:'08:45–09:45',k:'gym'},
+{id:'v-p1',t:'Pomodoro 1',h:'10:30–11:20',k:'pom'},
+{id:'v-p2',t:'Pomodoro 2',h:'11:30–12:20',k:'pom'},
+{id:'v-lec',t:'Lectura no económica',h:'12:45–13:00',k:'read'},
+{id:'v-kin',t:'Kinesiología',h:'13:00–14:35',k:'kine'},
+{id:'v-p3',t:'Pomodoro 3 · repaso semanal',h:'14:45–15:35',k:'pom'},
+{id:'v-p4',t:'Pomodoro 4 · repaso semanal',h:'15:45–16:45',k:'pom'},
+{id:'v-c1',t:'Economía Regional · virtual',h:'17:00–19:00',k:'class'}],
+6:[{id:'s-p1',t:'Pomodoro 1',h:'10:00–10:50',k:'pom'},
+{id:'s-p2',t:'Pomodoro 2',h:'11:00–11:50',k:'pom'},
+{id:'s-p3',t:'Pomodoro 3',h:'12:00–12:50',k:'pom'},
+{id:'s-p4',t:'Pomodoro 4',h:'13:00–13:50',k:'pom'},
+{id:'s-lec',t:'Lectura no económica',h:'14:45–15:30',k:'read'}],
+0:[{id:'d-p1',t:'Pomodoro 1',h:'10:00–10:50',k:'pom'},
+{id:'d-p2',t:'Pomodoro 2',h:'11:00–11:50',k:'pom'},
+{id:'d-p3',t:'Pomodoro 3',h:'12:00–12:50',k:'pom'},
+{id:'d-p4',t:'Pomodoro 4',h:'13:00–13:50',k:'pom'},
+{id:'d-lec',t:'Lectura no económica',h:'14:45–15:30',k:'read'},
+{id:'d-pla',t:'Planificar la semana',h:'20:00–20:15',k:'plan'}]};
+
+var KN={pom:'Estudio',class:'Clase',gym:'Entrenamiento',kine:'Kinesiología',read:'Lectura',
+soc:'Biblioteca',psi:'Psicólogo',rest:'Descanso',plan:'Planificación'};
+var MODES=[{id:'baja',n:'Tranquila',f:.6},{id:'norm',n:'Normal',f:1},{id:'alta',n:'Parcial cerca',f:1.35}];
+var TECHO=4;
+
+var K='rutina_v3';
+var S; try{S=JSON.parse(localStorage.getItem(K))||{log:{},carga:{},adel:{}};}catch(e){S={log:{},carga:{},adel:{}};}
+if(!S.log)S.log={}; if(!S.carga)S.carga={}; if(!S.adel)S.adel={};
+function save(){try{localStorage.setItem(K,JSON.stringify(S));}catch(e){}}
+
+var INICIO=new Date(2026,7,3); INICIO.setHours(0,0,0,0);
+var HOY=new Date(); HOY.setHours(0,0,0,0);
+var PRE=HOY<INICIO;
+function kf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+var HK=kf(HOY);
+var DN=['D','L','M','M','J','V','S'];
+var DL=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+var mes=new Date(HOY.getFullYear(),HOY.getMonth(),1);
+var sel=null;
+
+document.getElementById('fecha').textContent=HOY.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+// ---- semana (lunes como inicio)
+function lunes(d){var x=new Date(d);var g=(x.getDay()+6)%7;x.setDate(x.getDate()-g);x.setHours(0,0,0,0);return x;}
+function wkey(d){return kf(lunes(d));}
+function modo(d){return S.carga[wkey(d)]||'norm';}
+function factor(d){var m=modo(d);for(var i=0;i<MODES.length;i++)if(MODES[i].id===m)return MODES[i].f;return 1;}
+
+// pomodoros esperados ese dia segun carga
+function espera(d){
+ var base=PLAN[d.getDay()].filter(function(b){return b.k==='pom';}).length;
+ return Math.max(1,Math.round(base*factor(d)));
+}
+function bloques(d){
+ var arr=PLAN[d.getDay()].slice();
+ var e=espera(d), poms=arr.filter(function(b){return b.k==='pom';});
+ if(e<poms.length){ // sacar los ultimos
+  var quitar=poms.slice(e).map(function(b){return b.id;});
+  arr=arr.filter(function(b){return quitar.indexOf(b.id)<0;});
+ } else if(e>poms.length){
+  for(var i=poms.length;i<e;i++)
+   arr.push({id:'ex'+i,t:'Pomodoro extra '+(i+1),h:'a definir',k:'pom',extra:1});
+ }
+ return arr;
+}
+// pomodoros esperados en el finde ya descontando el adelanto sobrante de la semana
+function esperaFinde(d){
+ var base=espera(d);
+ // repartir el sobrante entre sábado y domingo restantes
+ var sob=adelSobrante();
+ if(sob<=0)return base;
+ var L=lunes(HOY), sat=new Date(L);sat.setDate(sat.getDate()+5);sat.setHours(0,0,0,0);
+ var sun=new Date(L);sun.setDate(sun.getDate()+6);sun.setHours(0,0,0,0);
+ // cuánto ya se descontó en el otro día del finde para no restar de más
+ var eSat=espera(sat), eSun=espera(sun);
+ if(d.getDay()===6){ // sábado: absorbe primero
+  return Math.max(0,eSat-sob);
+ } else { // domingo: absorbe lo que sobró tras el sábado
+  var restoTrasSat=Math.max(0,sob-eSat);
+  return Math.max(0,eSun-restoTrasSat);
+ }
+}
+function est(k,id){var o=S.log[k]||{};return o[id]||0;} // 0 no, 1 medio, 2 completo
+function setEst(k,id,v){S.log[k]=S.log[k]||{};if(v)S.log[k][id]=v;else delete S.log[k][id];
+ if(!Object.keys(S.log[k]).length)delete S.log[k];save();}
+
+// pomodoros hechos de bloques del plan (sin contar adelantos sueltos)
+function pomBloques(d){
+ var k=kf(d),n=0;
+ bloques(d).forEach(function(b){if(b.k==='pom'){var v=est(k,b.id);n+=v===2?1:v===1?.5:0;}});
+ return n;
+}
+function pomHechos(d){return pomBloques(d)+adel(d);}
+// pomodoros adelantados sueltos de un día (botón +)
+function adel(d){return S.adel[kf(d)]||0;}
+function setAdel(d,v){var k=kf(d);v=Math.max(0,v);if(v)S.adel[k]=v;else delete S.adel[k];save();}
+// adelanto total de la semana (lun a vie):
+//  - los pomodoros sueltos del botón + cuentan siempre como adelanto explícito
+//  - además, los bloques del plan hechos por encima de lo esperado también adelantan
+function adelSemana(){
+ var L=lunes(HOY),n=0;
+ for(var i=0;i<5;i++){
+  var d=new Date(L);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);
+  if(d<INICIO)continue;
+  n+=adel(d)+Math.max(0,pomBloques(d)-espera(d));
+ }
+ return n;
+}
+function pctDia(d){
+ var k=kf(d),bs=bloques(d).filter(function(b){return !b.opt;});
+ if(!bs.length)return null;
+ var t=0;bs.forEach(function(b){var v=est(k,b.id);t+=v===2?1:v===1?.5:0;});
+ return Math.round(t/bs.length*100);
+}
+// deuda bruta: bloques del plan no hechos de lun a vie (días ya pasados de esta semana).
+// No cuenta adelantos aquí; el adelanto se descuenta una sola vez en deuda().
+function deudaBruta(){
+ var L=lunes(HOY),n=0;
+ for(var i=0;i<5;i++){
+  var d=new Date(L);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);
+  if(d>=HOY||d<INICIO)continue;
+  n+=Math.max(0,espera(d)-pomBloques(d));
+ }
+ return n;
+}
+// deuda neta: lo adelantado cancela primero la deuda
+function deuda(){return Math.max(0,deudaBruta()-adelSemana());}
+// adelanto sobrante tras cancelar la deuda: esto reduce la meta del finde
+function adelSobrante(){return Math.max(0,adelSemana()-deudaBruta());}
+// meta base del finde (sáb+dom) según carga, sin ajuste por adelanto
+function metaFindeBase(){
+ var L=lunes(HOY),t=0;
+ [5,6].forEach(function(i){var d=new Date(L);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);t+=espera(d);});
+ return t;
+}
+// meta semanal total según la carga elegida
+function metaSemana(){
+ var L=lunes(HOY),t=0;
+ for(var i=0;i<7;i++){var d=new Date(L);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);t+=espera(d);}
+ return t;
+}
+// total de pomodoros hechos en la semana (incluye adelantos sueltos)
+function hechoSemana(){
+ var L=lunes(HOY),t=0;
+ for(var i=0;i<7;i++){var d=new Date(L);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);if(d<INICIO)continue;t+=pomHechos(d);}
+ return t;
+}
+// super semana: el total hecho supera la meta de la carga
+function superSemana(){return hechoSemana()>metaSemana();}
+
+function go(i){
+ var t=document.querySelectorAll('.tab'),p=document.querySelectorAll('.pane');
+ for(var j=0;j<t.length;j++){t[j].classList.toggle('on',i===j);p[j].classList.toggle('on',i===j);}
+ if(i===1)semana();if(i===2)cal();if(i===3)datos();
+}
+
+function fila(b,k,editable){
+ var v=est(k,b.id);
+ var cls=v===2?'full':v===1?'part':'';
+ return '<div class="blk '+cls+'"><div class="tag" style="background:var(--'+b.k+')"></div>'+
+  '<div class="bi"><div class="bt">'+b.t+(b.extra?' <span style="color:var(--gold)">+</span>':'')+'</div>'+
+  '<div class="bh">'+b.h+' · '+KN[b.k]+(b.opt?' · opcional':'')+'</div></div>'+
+  '<div class="bb">'+
+  '<button class="cb hf '+(v===1?'on':'')+'" onclick="mk(\''+k+'\',\''+b.id+'\',1)">½</button>'+
+  '<button class="cb '+(v===2?'on':'')+'" onclick="mk(\''+k+'\',\''+b.id+'\',2)">✓</button>'+
+  '</div></div>';
+}
+function mk(k,id,v){
+ if(k<'2026-08-03'){alert('El plan arranca el 3 de agosto.');return;}
+ setEst(k,id,est(k,id)===v?0:v);
+ hoy(); if(sel)dayedit(sel);
+ if(document.getElementById('p1').classList.contains('on'))semana();
+ if(document.getElementById('p2').classList.contains('on'))cal();
+}
+
+function hoy(){
+ var pre=document.getElementById('pre');
+ if(PRE){
+  var dd=Math.ceil((INICIO-HOY)/86400000);
+  pre.innerHTML='<div class="pre"><b>Faltan '+dd+' día'+(dd===1?'':'s')+'.</b> El plan arranca el lunes 3 de agosto. '+
+   'Hasta entonces podés mirar el cronograma pero no marcar nada.</div>';
+ } else pre.innerHTML='';
+
+ document.getElementById('htit').textContent='Cronograma · '+DL[HOY.getDay()];
+ var bs=bloques(HOY),k=HK,html='';
+ bs.forEach(function(b){html+=fila(b,k,1);});
+ document.getElementById('lista').innerHTML=html;
+
+ var dow=HOY.getDay();
+ var e=(dow===6||dow===0)?esperaFinde(HOY):espera(HOY),h=pomHechos(HOY);
+ document.getElementById('k1').innerHTML=(h%1?h.toFixed(1):h)+'<small>/'+e+'</small>';
+ var p=pctDia(HOY);
+ document.getElementById('k2').innerHTML=(p===null?0:p)+'<small>%</small>';
+ var D=deuda();
+ document.getElementById('k3').innerHTML=(D%1?D.toFixed(1):D)+'<small> pom</small>';
+
+ // botón de adelanto: solo días de semana (lun-vie) y tras el arranque
+ var abox=document.getElementById('adelbox');
+ if(!PRE && dow>=1 && dow<=5){
+  var a=adel(HOY);
+  abox.innerHTML='<div class="adel"><button class="ab" onclick="mAdel(-1)">−</button>'+
+   '<button class="ab" onclick="mAdel(1)">+</button>'+
+   '<span class="av">'+(a>0?'+'+(a%1?a.toFixed(1):a):'0')+'</span>'+
+   '<span class="al">adelantado</span></div>';
+ } else abox.innerHTML='';
+
+ var dv=document.getElementById('deuda');
+ if(PRE){dv.innerHTML='';return;}
+
+ // badge super semana (siempre que el total supere la meta)
+ var sup=superSemana()?'<div class="super"><span class="cr">🔥</span> <b>Super semana.</b> Pasaste la meta de pomodoros de esta carga ('+metaSemana()+'). Lo de más cuenta a tu favor, no genera nada pendiente.</div>':'';
+
+ var extra='';
+ var sob=adelSobrante();
+ if(sob>0 && D<=0){
+  extra='<div class="deu ok" style="margin-bottom:9px"><b>Vas adelantado '+(sob%1?sob.toFixed(1):sob)+' pomodoro'+(sob===1?'':'s')+'.</b> '+
+   'El fin de semana pide menos: la meta del sábado y domingo ya bajó por lo que hiciste de más.</div>';
+ }
+
+ if(D<=0){
+  dv.innerHTML=sup+extra+(sob>0?'':'<div class="deu ok"><b>Sin deuda.</b> Vas al día con lo que planificaste esta semana.</div>');
+ } else if(dow===6||dow===0){
+  var rep=Math.min(D,TECHO);
+  var txt='<div class="deu '+(D>TECHO*2?'bad':'warn')+'"><b>Debés '+(D%1?D.toFixed(1):D)+' pomodoros de esta semana.</b><br>'+
+   'Hoy podés recuperar hasta '+rep+' (arriba tenés los extra marcados con +).';
+  if(D>TECHO*2)txt+='<br><br>Ojo: la deuda superó el doble del techo. Eso no es falta de disciplina, es que la carga de la semana fue más alta de lo que entra. Bajá el modo a "Tranquila" la semana que viene.';
+  dv.innerHTML=sup+txt+'</div>';
+ } else {
+  dv.innerHTML=sup+'<div class="deu warn">Llevás <b>'+(D%1?D.toFixed(1):D)+' pomodoros</b> de deuda esta semana. Se recuperan el fin de semana, con tope de '+TECHO+' por día.<br>Si adelantás estudio cualquier día, primero se descuenta de acá.</div>';
+ }
+}
+function mAdel(n){
+ if(HK<'2026-08-03'){alert('El plan arranca el 3 de agosto.');return;}
+ setAdel(HOY,adel(HOY)+n);
+ hoy();
+ if(document.getElementById('p1').classList.contains('on'))semana();
+}
+
+function semana(){
+ var mh='';
+ MODES.forEach(function(m){
+  var on=modo(HOY)===m.id;
+  var tot=0;for(var i=0;i<7;i++){var d=new Date(lunes(HOY));d.setDate(d.getDate()+i);
+   tot+=Math.max(1,Math.round(PLAN[d.getDay()].filter(function(b){return b.k==='pom';}).length*m.f));}
+  mh+='<div class="mode '+(on?'on':'')+'" onclick="setModo(\''+m.id+'\')">'+m.n+'<small>'+tot+' pom</small></div>';
+ });
+ document.getElementById('modes').innerHTML=mh;
+
+ var L=lunes(HOY),html='',tE=0,tH=0;
+ for(var i=0;i<7;i++){
+  var d=new Date(L);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);
+  var k=kf(d),dow=d.getDay(),bs=bloques(d).filter(function(b){return !b.opt;});
+  var hecho=0,medio=0;
+  bs.forEach(function(b){var v=est(k,b.id);if(v===2)hecho++;else if(v===1)medio++;});
+  var e=(dow===6||dow===0)?esperaFinde(d):espera(d),ph=pomHechos(d);
+  if(d>=INICIO){tE+=e;tH+=ph;}
+  var wf=bs.length?hecho/bs.length*100:0, wm=bs.length?medio/bs.length*100:0;
+  var a=adel(d);
+  html+='<div class="pr"><div class="top"><div class="nm">'+DL[d.getDay()]+(k===HK?' · hoy':'')+
+   (a>0?' <span style="color:var(--pom);font-size:11px">+'+(a%1?a.toFixed(1):a)+' adel</span>':'')+'</div>'+
+   '<div class="vv">'+(ph%1?ph.toFixed(1):ph)+'/'+e+' pom</div></div>'+
+   '<div class="bar"><i style="width:'+wf+'%;background:var(--ok)"></i><i style="width:'+wm+'%;background:var(--gold)"></i></div></div>';
+ }
+ document.getElementById('sem').innerHTML=html;
+ var pend=Math.max(0,tE-tH);
+ var sup=superSemana()?'<div class="super" style="margin-top:12px"><span class="cr">🔥</span> <b>Super semana.</b> Superaste la meta de esta carga ('+metaSemana()+' pom). Vas por encima de lo planificado.</div>':'';
+ document.getElementById('resumen').innerHTML=sup+'<div class="note"><b>'+(tH%1?tH.toFixed(1):tH)+' de '+tE+' pomodoros</b> en la semana'+
+  (superSemana()?' · super semana':pend>0?' · faltan '+(pend%1?pend.toFixed(1):pend):' · completa')+'.<br><br>'+
+  'Cambiar la carga recalcula todo: en modo Tranquila se esperan menos pomodoros por día, así que no generás deuda falsa en semanas livianas.<br><br>'+
+  'Si adelantás estudio un día de semana (botón <b>+</b> en Hoy), primero cancela deuda y después baja la meta del fin de semana.</div>';
+}
+function setModo(m){S.carga[wkey(HOY)]=m;save();semana();hoy();}
+
+function cal(){
+ document.getElementById('mtit').textContent=mes.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+ var h='';for(var i=0;i<7;i++)h+='<div class="cd">'+DN[i]+'</div>';
+ var start=new Date(mes.getFullYear(),mes.getMonth(),1).getDay();
+ var last=new Date(mes.getFullYear(),mes.getMonth()+1,0).getDate();
+ for(var i=0;i<start;i++)h+='<div class="cell off"></div>';
+ for(var n=1;n<=last;n++){
+  var d=new Date(mes.getFullYear(),mes.getMonth(),n);d.setHours(0,0,0,0);
+  var k=kf(d),fut=(d>HOY||d<INICIO),p=fut?null:pctDia(d);
+  var c='cell';
+  if(fut)c+=' off';
+  else if(p!==null)c+=(p>=80?' f':p>=40?' p':' z');
+  if(k===HK)c+=' today';
+  h+='<div class="'+c+'"'+(fut?'':' onclick="pick(\''+k+'\')"')+'><div class="n">'+n+'</div>'+
+   (fut?'':'<div class="pc">'+(p===null?'':p+'%')+'</div>')+'</div>';
+ }
+ document.getElementById('cal').innerHTML=h;
+}
+function mv(n){mes=new Date(mes.getFullYear(),mes.getMonth()+n,1);cal();}
+function pick(k){sel=k;dayedit(k);}
+function dayedit(k){
+ var p=k.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);d.setHours(0,0,0,0);
+ var h='<h2>'+d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})+'</h2>';
+ bloques(d).forEach(function(b){h+=fila(b,k,1);});
+ document.getElementById('dayedit').innerHTML=h;
+}
+
+function datos(){
+ var ac={},tot={};
+ var d=new Date(HOY);
+ for(var i=0;i<30;i++){
+  if(d>=INICIO){
+   var k=kf(d);
+   bloques(d).forEach(function(b){
+    if(b.opt)return;
+    tot[b.k]=(tot[b.k]||0)+1;
+    var v=est(k,b.id);ac[b.k]=(ac[b.k]||0)+(v===2?1:v===1?.5:0);});
+  }
+  d.setDate(d.getDate()-1);
+ }
+ var h='';
+ Object.keys(KN).forEach(function(kk){
+  if(!tot[kk])return;
+  var p=Math.round((ac[kk]||0)/tot[kk]*100);
+  h+='<div class="pr"><div class="top"><div class="nm">'+KN[kk]+'</div><div class="vv">'+p+'%</div></div>'+
+   '<div class="bar"><i style="width:'+p+'%;background:var(--'+kk+')"></i></div></div>';});
+ document.getElementById('tipos').innerHTML=h||'<div class="note">Sin datos todavía.</div>';
+
+ h='';var L=lunes(HOY);
+ for(var w=3;w>=0;w--){
+  var s0=new Date(L);s0.setDate(s0.getDate()-w*7);
+  var e=0,hh=0;
+  for(var i=0;i<7;i++){var dd=new Date(s0);dd.setDate(dd.getDate()+i);dd.setHours(0,0,0,0);
+   if(dd<INICIO||dd>HOY)continue; e+=espera(dd);hh+=pomHechos(dd);}
+  if(!e)continue;
+  var p=Math.round(hh/e*100);
+  h+='<div class="pr"><div class="top"><div class="nm">Semana del '+s0.getDate()+'/'+(s0.getMonth()+1)+'</div>'+
+   '<div class="vv">'+(hh%1?hh.toFixed(1):hh)+'/'+e+'</div></div>'+
+   '<div class="bar"><i style="width:'+Math.min(100,p)+'%;background:var(--pom)"></i></div></div>';
+ }
+ document.getElementById('hist').innerHTML=h||'<div class="note">Sin semanas registradas.</div>';
+
+ var peor=null,pv=101;
+ Object.keys(KN).forEach(function(kk){if(!tot[kk])return;
+  var p=Math.round((ac[kk]||0)/tot[kk]*100); if(p<pv){pv=p;peor=KN[kk];}});
+ var t='<b>Todavía no hay datos suficientes.</b> Marcá una semana completa y esto empieza a servir.';
+ if(Object.keys(S.log).length>=4&&peor){
+  if(pv<50)t='<b>'+peor+'</b> está en '+pv+'%. Debajo del 50% casi nunca es falta de voluntad: el bloque está mal ubicado o es más largo de lo que entra. Movelo o achicalo antes de abandonarlo.';
+  else if(pv<80)t='<b>'+peor+'</b> es lo más flojo ('+pv+'%), pero recuperable. Fijate qué día falla más.';
+  else t='Todo por encima del 80%. Si esto se sostiene tres semanas, podés subir la carga a "Parcial cerca" sin riesgo.';}
+ document.getElementById('insight').innerHTML=t;
+}
+
+function exp(){var t=JSON.stringify(S);
+ if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){alert('Copia en el portapapeles.');},function(){prompt('Copiá:',t);});
+ else prompt('Copiá:',t);}
+function wipe(){if(confirm('¿Borrar todo el historial?')){S={log:{},carga:{},adel:{}};save();hoy();}}
+
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+ window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+}
+hoy();
+</script>
+</body>
+</html>
