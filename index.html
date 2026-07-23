@@ -133,6 +133,22 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;cur
 .matrow .mc{width:12px;height:12px;border-radius:50%;flex:none}
 .matrow .mn{flex:1;font-weight:600;font-size:13px}
 .matrow .del{background:none;border:none;color:var(--bad);font-size:15px;cursor:pointer;padding:2px 4px}
+/* temas */
+.exhead{display:flex;align-items:center;gap:8px;margin:16px 0 8px}
+.exhead .ent{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.exhead .prog{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--pom);margin-left:auto}
+.tema{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:5px;cursor:pointer}
+.tema .stx{width:22px;height:22px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:1.5px solid var(--line)}
+.tema.s1{background:#152417;border-color:#2c5238}.tema.s1 .stx{border-color:var(--ok);color:var(--ok)}
+.tema.s2{background:#252012;border-color:#5e5a30}.tema.s2 .stx{border-color:var(--gold);color:var(--gold)}
+.tema.s3{background:#141d2e;border-color:#2c4468}.tema.s3 .stx{border-color:var(--pom);color:var(--pom)}
+.tema .ttx{flex:1;font-size:13px;min-width:0}
+.tema.s1 .ttx,.tema.s3 .ttx{text-decoration:line-through;color:var(--mut)}
+.tema .tdel{background:none;border:none;color:var(--mut);font-size:14px;cursor:pointer;flex:none;padding:0 2px}
+.tadd{display:flex;gap:6px;margin:6px 0 4px}
+.tarea{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 10px;font-size:13px;font-family:inherit;margin-bottom:6px;resize:vertical;min-height:44px}
+.tlegend{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--mut);margin:8px 0 2px}
+.tlegend span{display:flex;align-items:center;gap:4px}
 .note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px;
 font-size:11.5px;color:var(--mut);line-height:1.6;margin-top:12px}
 .note b{color:var(--ink)}
@@ -187,6 +203,7 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
   <div class="tab on" onclick="go(0)">Hoy</div>
   <div class="tab" onclick="go(1)">Semana</div>
   <div class="tab" onclick="go(2)">Mes</div>
+  <div class="tab" onclick="go(4)">Temas</div>
   <div class="tab" onclick="go(3)">Datos</div>
 </div>
 
@@ -242,6 +259,13 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
     <input class="efield" id="newmat" placeholder="Nueva materia (ej. final de septiembre)" style="margin-bottom:0">
     <button class="btn" onclick="addMatUI()" style="flex:none">Agregar</button>
   </div>
+</div>
+
+<div class="pane" id="p4">
+  <h2 style="margin-top:0">Plan de temas por materia</h2>
+  <div class="note" style="margin-top:0">Elegí una materia y un examen, cargá los temas del programa (podés pegar la lista entera) y tachalos a medida que avanzás. Tocá un tema para cambiar su estado: pendiente → visto → repasar → dominado.</div>
+  <div class="echips" id="tmat" style="margin-top:12px"></div>
+  <div id="temasbody"></div>
 </div>
 
 <button class="fab" id="fab" onclick="tOpen()" title="Temporizador pomodoro">▶</button>
@@ -369,8 +393,22 @@ function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).sli
 function evsList(){var a=[];for(var k in S.evs)a.push(S.evs[k]);a.sort(function(x,y){return x.fecha<y.fecha?-1:x.fecha>y.fecha?1:0;});return a;}
 function evsDia(k){var a=[];for(var id in S.evs)if(S.evs[id].fecha===k)a.push(S.evs[id]);return a;}
 function addEv(fecha,tipo,mat,tit){var id=uid();S.evs[id]={id:id,fecha:fecha,tipo:tipo,mat:mat,tit:tit||''};save();return id;}
-function delEv(id){delete S.evs[id];save();}
+function delEv(id){delete S.evs[id];
+ // al borrar un examen, sus temas quedan sin asignar
+ for(var t in S.temas)if(S.temas[t].ev===id)S.temas[t].ev='';
+ save();}
 function diasHasta(k){var p=k.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);d.setHours(0,0,0,0);return Math.round((d-HOY)/86400000);}
+// ---- temas de estudio ----
+if(!S.temas)S.temas={}; // {id:{mat,ev,t,st}} st: 0 pendiente,1 visto,2 repasar,3 dominado
+var TEST=[{n:'Pendiente',c:'var(--mut)',e:'○'},{n:'Visto',c:'var(--ok)',e:'✓'},{n:'Repasar',c:'var(--gold)',e:'↻'},{n:'Dominado',c:'var(--pom)',e:'★'}];
+function addTema(mat,ev,t){t=(t||'').trim();if(!t)return null;var id=uid();S.temas[id]={id:id,mat:mat,ev:ev||'',t:t,st:0};save();return id;}
+function addTemasLista(mat,ev,txt){ (txt||'').split('\n').forEach(function(l){if(l.trim())addTema(mat,ev,l);}); }
+function rotTema(id){var x=S.temas[id];if(!x)return;x.st=(x.st+1)%4;save();}
+function delTema(id){delete S.temas[id];save();}
+function temasDe(mat,ev){var a=[];for(var id in S.temas){var x=S.temas[id];if(x.mat===mat&&(ev===undefined||x.ev===ev))a.push(x);}return a;}
+function temasDeEv(evId){var a=[];for(var id in S.temas)if(S.temas[id].ev===evId)a.push(S.temas[id]);return a;}
+// progreso de un examen: {vistos, total} contando visto/repasar/dominado como "encarado", solo dominado+visto como "listo"
+function progEv(evId){var ts=temasDeEv(evId),listo=0;ts.forEach(function(x){if(x.st===1||x.st===3)listo++;});return {listo:listo,total:ts.length};}
 
 var INICIO=new Date(2026,7,3); INICIO.setHours(0,0,0,0);
 var HOY=new Date(); HOY.setHours(0,0,0,0);
@@ -512,10 +550,17 @@ function hechoSemana(){
 // super semana: el total hecho supera la meta de la carga
 function superSemana(){return hechoSemana()>metaSemana();}
 
+// orden de las tabs (mismo orden visual): cada una apunta a su pane
+var TABORD=[0,1,2,4,3]; // Hoy, Semana, Mes, Temas(p4), Datos(p3)
 function go(i){
- var t=document.querySelectorAll('.tab'),p=document.querySelectorAll('.pane');
- for(var j=0;j<t.length;j++){t[j].classList.toggle('on',i===j);p[j].classList.toggle('on',i===j);}
- if(i===1)semana();if(i===2)cal();if(i===3)datos();
+ var t=document.querySelectorAll('.tab');
+ for(var j=0;j<TABORD.length;j++){
+  var on=TABORD[j]===i;
+  t[j].classList.toggle('on',on);
+  var pane=document.getElementById('p'+TABORD[j]);
+  if(pane)pane.classList.toggle('on',on);
+ }
+ if(i===1)semana();if(i===2)cal();if(i===3)datos();if(i===4)temas();
 }
 
 function fila(b,k,editable){
@@ -724,10 +769,18 @@ function dayedit(k){
  var evd=evsDia(k);
  if(evd.length){
   evd.forEach(function(ev){var mm=matById(ev.mat),tp=TIPOS[ev.tipo]||{n:ev.tipo,e:'•'};
+   var pr=progEv(ev.id);
    h+='<div class="evrow"><div class="ec" style="background:'+(mm?mm.c:'#8a94a1')+'"></div>'+
     '<div class="ei"><div class="et">'+tp.e+' '+tp.n+' · '+(mm?mm.n:'?')+'</div>'+
-    '<div class="es">'+(ev.tit?ev.tit:'sin detalle')+'</div></div>'+
-    '<button class="del" onclick="delEvUI(\''+ev.id+'\',\''+k+'\')">✕</button></div>';});
+    '<div class="es">'+(ev.tit?ev.tit:'sin detalle')+(pr.total?' · '+pr.listo+'/'+pr.total+' temas':'')+'</div></div>'+
+    '<button class="del" onclick="delEvUI(\''+ev.id+'\',\''+k+'\')">✕</button></div>';
+   // temas de este examen, tachables acá mismo
+   var ts=temasDeEv(ev.id);
+   ts.forEach(function(x){var st=TEST[x.st];
+    h+='<div class="tema s'+x.st+'" style="margin-left:14px" onclick="rotTemaCal(\''+x.id+'\',\''+k+'\')"><span class="stx">'+st.e+'</span><span class="ttx">'+x.t+'</span></div>';});
+   h+='<div class="tadd" style="margin-left:14px"><input class="efield" id="calt_'+ev.id+'" placeholder="Agregar tema a este examen" style="margin-bottom:0">'+
+    '<button class="btn" style="flex:none" onclick="addTemaCal(\''+ev.id+'\',\''+k+'\')">+</button></div>';
+  });
  }
  // formulario para agregar evento
  if(!evForm.mat && S.mats.length)evForm.mat=S.mats[0].id;
@@ -755,6 +808,12 @@ function addEvUI(k){
  cal();dayedit(k);
 }
 function delEvUI(id,k){if(confirm('¿Borrar este evento?')){delEv(id);cal();dayedit(k);proximas();}}
+function rotTemaCal(id,k){rotTema(id);dayedit(k);}
+function addTemaCal(evId,k){
+ var inp=document.getElementById('calt_'+evId);if(!inp)return;
+ var ev=S.evs[evId];if(ev)addTema(ev.mat,evId,inp.value);
+ inp.value='';dayedit(k);
+}
 // "Lo que se viene": próximos eventos (de hoy en adelante) ordenados por cercanía
 function proximas(){
  var box=document.getElementById('proximas');if(!box)return;
@@ -799,6 +858,57 @@ function delMatUI(id){
  S.mats=S.mats.filter(function(m){return m.id!==id;});
  if(evForm.mat===id)evForm.mat=S.mats.length?S.mats[0].id:null;
  save();matlist();if(sel)dayedit(sel);proximas();
+}
+
+// ---- pestaña Temas ----
+var temSel=null; // materia seleccionada
+function temas(){
+ if(!temSel && S.mats.length)temSel=S.mats[0].id;
+ // chips de materias
+ var mh='';
+ S.mats.forEach(function(m){mh+='<div class="echip'+(temSel===m.id?' on':'')+'" onclick="temSelMat(\''+m.id+'\')" style="'+(temSel===m.id?'border-color:'+m.c+';color:'+m.c:'')+'">'+m.n+'</div>';});
+ document.getElementById('tmat').innerHTML=mh||'<div class="note">Creá una materia primero (pestaña Mes).</div>';
+ // cuerpo: exámenes de la materia + sin asignar
+ var body=document.getElementById('temasbody');
+ if(!temSel){body.innerHTML='';return;}
+ var mm=matById(temSel),h='';
+ // exámenes de esta materia, ordenados por fecha
+ var evs=[];for(var id in S.evs)if(S.evs[id].mat===temSel)evs.push(S.evs[id]);
+ evs.sort(function(a,b){return a.fecha<b.fecha?-1:1;});
+ // grupo por cada examen
+ evs.forEach(function(ev){h+=grupoTemas(ev.id);});
+ // grupo "sin asignar"
+ h+=grupoTemas('');
+ body.innerHTML=h;
+}
+function temSelMat(id){temSel=id;temas();}
+function grupoTemas(evId){
+ var tp,fecha='';
+ if(evId){var ev=S.evs[evId];if(!ev)return '';var t=TIPOS[ev.tipo]||{n:ev.tipo,e:'•'};tp=t.e+' '+t.n+(ev.tit?' · '+ev.tit:'');
+  var p=ev.fecha.split('-'),fd=new Date(+p[0],+p[1]-1,+p[2]);fecha=fd.toLocaleDateString('es-AR',{day:'numeric',month:'short'})+' · faltan '+diasHasta(ev.fecha)+'d';}
+ else tp='Sin asignar a un examen';
+ var ts=temasDe(temSel,evId);
+ var pr=progEv(evId);
+ var h='<div class="exhead"><span class="ent">'+tp+'</span>'+(fecha?'<span class="ent" style="text-transform:none">'+fecha+'</span>':'')+
+  (ts.length?'<span class="prog">'+pr.listo+'/'+ts.length+'</span>':'')+'</div>';
+ ts.forEach(function(x){
+  var st=TEST[x.st];
+  h+='<div class="tema s'+x.st+'" onclick="rotTemaUI(\''+x.id+'\')"><span class="stx">'+st.e+'</span>'+
+   '<span class="ttx">'+x.t+'</span>'+
+   '<button class="tdel" onclick="event.stopPropagation();delTemaUI(\''+x.id+'\')">✕</button></div>';
+ });
+ // agregar temas a este grupo
+ var tag='ta_'+(evId||'none');
+ h+='<textarea class="tarea" id="'+tag+'" placeholder="Agregá un tema, o pegá varios (uno por línea)"></textarea>';
+ h+='<button class="btn" onclick="addTemasUI(\''+evId+'\',\''+tag+'\')" style="margin-bottom:6px">Agregar temas</button>';
+ return h;
+}
+function rotTemaUI(id){rotTema(id);temas();}
+function delTemaUI(id){delTema(id);temas();}
+function addTemasUI(evId,tag){
+ var ta=document.getElementById(tag);if(!ta)return;
+ addTemasLista(temSel,evId,ta.value);
+ ta.value='';temas();
 }
 
 function datos(){
@@ -850,7 +960,7 @@ function datos(){
 function exp(){var t=JSON.stringify(S);
  if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){alert('Copia en el portapapeles.');},function(){prompt('Copiá:',t);});
  else prompt('Copiá:',t);}
-function wipe(){if(confirm('¿Borrar todo el historial?')){S={log:{},carga:{},adel:{},mad:{}};save();hoy();}}
+function wipe(){if(confirm('¿Borrar todo el historial? (Se mantienen materias, fechas y temas)')){S.log={};S.carga={};S.adel={};S.mad={};save();hoy();}}
 
 // ---- temporizador pomodoro 50/10 ----
 // T.fase: 'foco'|'desc' · T.rest: segundos restantes · T.run: corriendo · T.fin: timestamp de fin · T.ciclos: focos completados en la sesión
