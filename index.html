@@ -174,7 +174,7 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
 
 <div class="pane" id="p1">
   <h2>Carga de esta semana</h2>
-  <div class="note" style="margin-top:0">Elegí según cómo viene la semana. Ajusta cuántos pomodoros se esperan por día.</div>
+  <div class="note" style="margin-top:0">Elegí según cómo viene la semana. Ajusta cuántos pomodoros se esperan por día. <b>Semana fuerte</b> suma un madrugón de estudio (05:30 y 06:30) de lunes a viernes y más carga el fin de semana, para semanas de parcial.</div>
   <div class="modes" id="modes"></div>
   <h2>Planificado vs. real</h2>
   <div id="sem"></div>
@@ -290,9 +290,12 @@ var PLAN={
 var KN={pom:'Estudio',class:'Clase',gym:'Entrenamiento',kine:'Kinesiología',read:'Lectura',
 soc:'Biblioteca',psi:'Psicólogo',rest:'Descanso',plan:'Planificación'};
 var EMO={pom:'📚',class:'🎓',gym:'🏋️',kine:'🧑‍⚕️',read:'📖',soc:'👥',psi:'🧠',rest:'😴',plan:'🗓️'};
-var MODES=[{id:'baja',n:'Tranquila',f:.6},{id:'norm',n:'Normal',f:1},{id:'alta',n:'Parcial cerca',f:1.35}];
+var MODES=[{id:'baja',n:'Tranquila',f:.6},{id:'norm',n:'Normal',f:1},{id:'alta',n:'Parcial cerca',f:1.35},{id:'fuerte',n:'Semana fuerte',f:1.6}];
 var TECHO=4;
 var FOCO=50*60, DESC=10*60; // segundos: 50 min foco, 10 min descanso
+// bloques de madrugón (solo modo fuerte, lun a vie): estudio temprano
+var MADRUGON=[{id:'mad-a',t:'Madrugón · estudio',h:'05:30–06:20',k:'pom',mad:1},
+{id:'mad-b',t:'Madrugón · estudio',h:'06:30–07:20',k:'pom',mad:1}];
 
 var K='rutina_v3';
 var S; try{S=JSON.parse(localStorage.getItem(K))||{log:{},carga:{},adel:{}};}catch(e){S={log:{},carga:{},adel:{}};}
@@ -319,14 +322,26 @@ function factor(d){var m=modo(d);for(var i=0;i<MODES.length;i++)if(MODES[i].id==
 
 // pomodoros esperados ese dia segun carga
 function espera(d){
- var base=PLAN[d.getDay()].filter(function(b){return b.k==='pom';}).length;
- return Math.max(1,Math.round(base*factor(d)));
+ var dow=d.getDay();
+ var base=PLAN[dow].filter(function(b){return b.k==='pom';}).length;
+ var e=Math.max(1,Math.round(base*factor(d)));
+ // modo fuerte: sumar los 2 madrugones de estudio (lun-vie) a la meta del día
+ if(modo(d)==='fuerte' && dow>=1 && dow<=5) e+=MADRUGON.length;
+ return e;
 }
 function bloques(d){
  var arr=PLAN[d.getDay()].slice();
+ var dow=d.getDay(), esFuerte=modo(d)==='fuerte';
+ // modo fuerte: madrugón de estudio los días de semana (lun-vie)
+ var mad=[];
+ if(esFuerte && dow>=1 && dow<=5){
+  mad=MADRUGON.map(function(b){return {id:b.id,t:b.t,h:b.h,k:b.k,mad:1};});
+  arr=mad.concat(arr);
+ }
  var e=espera(d), poms=arr.filter(function(b){return b.k==='pom';});
- if(e<poms.length){ // sacar los ultimos
-  var quitar=poms.slice(e).map(function(b){return b.id;});
+ if(e<poms.length){ // sacar los ultimos (nunca los madrugones)
+  var noMad=poms.filter(function(b){return !b.mad;});
+  var quitar=noMad.slice(Math.max(0,e-mad.length)).map(function(b){return b.id;});
   arr=arr.filter(function(b){return quitar.indexOf(b.id)<0;});
  } else if(e>poms.length){
   for(var i=poms.length;i<e;i++)
@@ -454,7 +469,7 @@ function filaTL(b,k){
   '<div class="th">'+ini+'</div>'+
   '<div class="dot" style="background:'+color+'"></div>'+
   '<div class="card">'+
-  '<span class="emo">'+(EMO[b.k]||'•')+(b.extra?'<span style="color:var(--gold);font-size:12px"> +</span>':'')+'</span>'+
+  '<span class="emo">'+(b.mad?'☀️':(EMO[b.k]||'•'))+(b.extra?'<span style="color:var(--gold);font-size:12px"> +</span>':'')+'</span>'+
   '<div class="bi"><div class="bt">'+b.t+'</div>'+
   '<div class="bsub">'+b.h+' · '+KN[b.k]+(b.opt?' · opcional':'')+'</div></div>'+
   bb+'</div></div>';
@@ -552,8 +567,10 @@ function semana(){
  var mh='';
  MODES.forEach(function(m){
   var on=modo(HOY)===m.id;
-  var tot=0;for(var i=0;i<7;i++){var d=new Date(lunes(HOY));d.setDate(d.getDate()+i);
-   tot+=Math.max(1,Math.round(PLAN[d.getDay()].filter(function(b){return b.k==='pom';}).length*m.f));}
+  var tot=0;for(var i=0;i<7;i++){var d=new Date(lunes(HOY)),dw;d.setDate(d.getDate()+i);dw=d.getDay();
+   var e=Math.max(1,Math.round(PLAN[dw].filter(function(b){return b.k==='pom';}).length*m.f));
+   if(m.id==='fuerte' && dw>=1 && dw<=5)e+=MADRUGON.length;
+   tot+=e;}
   mh+='<div class="mode '+(on?'on':'')+'" onclick="setModo(\''+m.id+'\')">'+m.n+'<small>'+tot+' pom</small></div>';
  });
  document.getElementById('modes').innerHTML=mh;
