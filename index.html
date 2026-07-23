@@ -14,23 +14,23 @@
 <title>Rutina</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#12151a;--card:#1c2128;--card2:#232a33;--line:#2b323b;--ink:#eef1f5;--mut:#8a94a1;
---pom:#5b8def;--class:#f4746b;--gym:#e0533d;--kine:#7a6cc4;--read:#c77dbb;--soc:#7fb8d8;
---psi:#3fae7a;--rest:#9aa3ad;--plan:#e8b93c;--gold:#e8b93c;--ok:#3fae7a;--bad:#e0736d}
+:root{--bg:#0f1216;--card:#1a1f26;--card2:#232a33;--line:#2b323b;--ink:#f0f3f7;--mut:#8a94a1;
+--pom:#5b8def;--class:#f4746b;--gym:#ff7a45;--kine:#8b7cf0;--read:#e07dc4;--soc:#5ec5e8;
+--psi:#3fc78a;--rest:#9aa3ad;--plan:#f0c14b;--gold:#f0c14b;--ok:#3fc78a;--bad:#e0736d}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;
 max-width:700px;margin:0 auto;padding:16px 13px 80px}
-h1{font-size:21px;font-weight:800;letter-spacing:-.02em}
-.date{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--mut);margin-top:3px}
-.tabs{display:flex;gap:4px;margin:14px 0 16px;background:var(--card);padding:4px;border-radius:12px}
-.tab{flex:1;padding:9px 2px;text-align:center;font-size:12px;font-weight:600;border-radius:9px;cursor:pointer;color:var(--mut)}
-.tab.on{background:var(--card2);color:var(--ink)}
+h1{font-size:23px;font-weight:800;letter-spacing:-.02em}
+.date{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--mut);margin-top:3px;text-transform:capitalize}
+.tabs{display:flex;gap:4px;margin:14px 0 16px;background:var(--card);padding:4px;border-radius:14px;border:1px solid var(--line)}
+.tab{flex:1;padding:10px 2px;text-align:center;font-size:12px;font-weight:600;border-radius:10px;cursor:pointer;color:var(--mut);transition:background .15s,color .15s}
+.tab.on{background:var(--card2);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .pane{display:none}.pane.on{display:block}
 h2{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut);margin:18px 0 8px}
 .row{display:flex;gap:7px;margin-bottom:14px}
-.sc{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+.sc{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 11px}
 .sc .lab{font-family:"IBM Plex Mono",monospace;font-size:8px;color:var(--mut);letter-spacing:.08em;text-transform:uppercase}
-.sc .val{font-size:21px;font-weight:800;margin-top:2px;line-height:1}
+.sc .val{font-size:22px;font-weight:800;margin-top:3px;line-height:1}
 .sc .val small{font-size:10px;color:var(--mut);font-weight:500}
 /* bloques */
 .blk{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 11px;
@@ -46,6 +46,21 @@ margin-bottom:7px;display:flex;gap:10px;align-items:center}
 color:var(--mut);cursor:pointer;font-size:14px;font-family:inherit;font-weight:700}
 .cb.on{background:var(--ok);border-color:var(--ok);color:#fff}
 .cb.hf.on{background:var(--gold);border-color:var(--gold);color:#2a2410}
+/* timeline (vista Hoy) */
+.tl{position:relative;padding-left:48px;margin-top:4px}
+.tl:before{content:'';position:absolute;left:39px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.te{position:relative;margin-bottom:8px}
+.te .th{position:absolute;left:-48px;top:13px;font-size:9.5px;color:var(--mut);font-family:"IBM Plex Mono",monospace;width:34px;text-align:right;line-height:1}
+.te .dot{position:absolute;left:-13px;top:13px;width:11px;height:11px;border-radius:50%;border:2px solid var(--bg);z-index:1}
+.te .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+.te.full .card{background:#182a22;border-color:#3a6b4e}
+.te.part .card{background:#2a2718;border-color:#5e5a30}
+.te .emo{font-size:19px;flex:none;line-height:1;width:24px;text-align:center}
+.te .bi{flex:1;min-width:0}
+.te .bt{font-weight:700;font-size:13px;line-height:1.2;color:var(--ink)}
+.te .bsub{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--mut);margin-top:2px}
+.te .bb{display:flex;gap:5px;flex:none}
+.te .done{font-size:16px;color:var(--ok);flex:none}
 /* deuda */
 .deu{border-radius:13px;padding:12px;margin-bottom:9px;font-size:12.5px;line-height:1.5}
 .deu.ok{background:#1a2f24;border:1px solid #3a6b4e}
@@ -274,6 +289,7 @@ var PLAN={
 
 var KN={pom:'Estudio',class:'Clase',gym:'Entrenamiento',kine:'Kinesiología',read:'Lectura',
 soc:'Biblioteca',psi:'Psicólogo',rest:'Descanso',plan:'Planificación'};
+var EMO={pom:'📚',class:'🎓',gym:'🏋️',kine:'🧑‍⚕️',read:'📖',soc:'👥',psi:'🧠',rest:'😴',plan:'🗓️'};
 var MODES=[{id:'baja',n:'Tranquila',f:.6},{id:'norm',n:'Normal',f:1},{id:'alta',n:'Parcial cerca',f:1.35}];
 var TECHO=4;
 var FOCO=50*60, DESC=10*60; // segundos: 50 min foco, 10 min descanso
@@ -420,6 +436,29 @@ function fila(b,k,editable){
   '<button class="cb '+(v===2?'on':'')+'" onclick="mk(\''+k+'\',\''+b.id+'\',2)">✓</button>'+
   '</div></div>';
 }
+// fila estilo timeline para la vista Hoy
+function filaTL(b,k){
+ var v=est(k,b.id);
+ var cls=v===2?'full':v===1?'part':'';
+ var ini=(b.h||'').split('–')[0]||'';
+ var color='var(--'+b.k+')';
+ var bb;
+ if(v===2){
+  bb='<span class="done">✓</span>';
+ } else {
+  bb='<div class="bb">'+
+   '<button class="cb hf '+(v===1?'on':'')+'" onclick="mk(\''+k+'\',\''+b.id+'\',1)">½</button>'+
+   '<button class="cb '+(v===2?'on':'')+'" onclick="mk(\''+k+'\',\''+b.id+'\',2)">✓</button></div>';
+ }
+ return '<div class="te '+cls+'">'+
+  '<div class="th">'+ini+'</div>'+
+  '<div class="dot" style="background:'+color+'"></div>'+
+  '<div class="card">'+
+  '<span class="emo">'+(EMO[b.k]||'•')+(b.extra?'<span style="color:var(--gold);font-size:12px"> +</span>':'')+'</span>'+
+  '<div class="bi"><div class="bt">'+b.t+'</div>'+
+  '<div class="bsub">'+b.h+' · '+KN[b.k]+(b.opt?' · opcional':'')+'</div></div>'+
+  bb+'</div></div>';
+}
 function mk(k,id,v){
  if(k<'2026-08-03'){alert('El plan arranca el 3 de agosto.');return;}
  setEst(k,id,est(k,id)===v?0:v);
@@ -437,8 +476,9 @@ function hoy(){
  } else pre.innerHTML='';
 
  document.getElementById('htit').textContent='Cronograma · '+DL[HOY.getDay()];
- var bs=bloques(HOY),k=HK,html='';
- bs.forEach(function(b){html+=fila(b,k,1);});
+ var bs=bloques(HOY),k=HK,html='<div class="tl">';
+ bs.forEach(function(b){html+=filaTL(b,k);});
+ html+='</div>';
  document.getElementById('lista').innerHTML=html;
 
  var dow=HOY.getDay();
@@ -449,14 +489,14 @@ function hoy(){
  var D=deuda();
  document.getElementById('k3').innerHTML=(D%1?D.toFixed(1):D)+'<small> pom</small>';
 
- // botón de adelanto: solo días de semana (lun-vie) y tras el arranque
+ // botón de adelanto: visible en días de semana (lun-vie), incluso antes del arranque (deshabilitado)
  var abox=document.getElementById('adelbox');
- if(!PRE && dow>=1 && dow<=5){
+ if(dow>=1 && dow<=5){
   var a=adel(HOY);
   abox.innerHTML='<div class="adel"><button class="ab" onclick="mAdel(-1)">−</button>'+
    '<button class="ab" onclick="mAdel(1)">+</button>'+
    '<span class="av">'+(a>0?'+'+(a%1?a.toFixed(1):a):'0')+'</span>'+
-   '<span class="al">adelantado</span></div>';
+   '<span class="al">adelantar</span></div>';
  } else abox.innerHTML='';
 
  var dv=document.getElementById('deuda');
