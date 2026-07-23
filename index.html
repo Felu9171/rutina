@@ -100,6 +100,29 @@ padding:8px 12px;font-size:11.5px;cursor:pointer;font-family:inherit;font-weight
 .super{background:linear-gradient(135deg,#2d2410,#3a2e12);border:1px solid var(--gold);border-radius:13px;padding:12px 13px;margin-bottom:9px;font-size:12.5px;line-height:1.5}
 .super b{color:var(--gold);font-size:14px}
 .super .cr{font-size:20px}
+/* timer flotante */
+.fab{position:fixed;right:16px;bottom:16px;width:56px;height:56px;border-radius:50%;
+border:none;background:var(--pom);color:#fff;font-size:24px;cursor:pointer;z-index:40;
+box-shadow:0 4px 14px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-family:inherit}
+.fab.run{background:var(--ok)}
+.fab.brk{background:var(--gold);color:#2a2410}
+.fab .mini{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:700}
+.tmodal{position:fixed;inset:0;background:rgba(8,10,13,.72);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.tmodal.on{display:flex}
+.tcard{background:var(--card);border:1px solid var(--line);border-radius:18px 18px 0 0;
+width:100%;max-width:700px;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:center}
+.tcard .ph{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut)}
+.tcard .ph.brk{color:var(--gold)}
+.tcard .clock{font-family:"IBM Plex Mono",monospace;font-size:56px;font-weight:600;line-height:1.1;margin:6px 0 2px;letter-spacing:-.02em}
+.tcard .sub{font-size:12px;color:var(--mut);margin-bottom:16px}
+.tcard .sub b{color:var(--ink)}
+.tbtns{display:flex;gap:8px;justify-content:center}
+.tbtn{flex:1;max-width:150px;padding:13px 8px;border-radius:11px;border:1px solid var(--line);
+background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.tbtn.pri{background:var(--pom);border-color:var(--pom);color:#fff}
+.tbtn.pri.run{background:var(--gold);border-color:var(--gold);color:#2a2410}
+.tclose{background:none;border:none;color:var(--mut);font-size:12px;cursor:pointer;font-family:inherit;margin-top:14px;padding:6px}
+.tcount{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--pom);margin-top:12px}
 </style>
 </head>
 <body>
@@ -129,7 +152,8 @@ padding:8px 12px;font-size:11.5px;cursor:pointer;font-family:inherit;font-weight
     Un pomodoro a medias cuenta como 0,5.<br><br>
     Los bloques que no hacés se acumulan como deuda y aparecen el fin de semana, con un techo de 4 extra por día:
     más que eso significa que la carga de la semana fue demasiado alta, no que fallaste.<br><br>
-    <b>¿Adelantar estudio?</b> Usá el botón <b>+</b> en "Pomodoros hoy" cualquier día de semana. Primero cancela deuda; lo que sobre baja la meta del fin de semana. Si aun así el finde estudiás de más y superás la meta de la carga, aparece la <b>🔥 Super semana</b>.
+    <b>¿Adelantar estudio?</b> Usá el botón <b>+</b> en "Pomodoros hoy" cualquier día de semana. Primero cancela deuda; lo que sobre baja la meta del fin de semana. Si aun así el finde estudiás de más y superás la meta de la carga, aparece la <b>🔥 Super semana</b>.<br><br>
+    <b>Temporizador:</b> tocá el botón <b>▶</b> abajo a la derecha para arrancar un pomodoro de 50 min (con 10 de descanso). Cuando termina el foco, la app marca sola el próximo bloque de estudio libre del día; si ya no quedan, suma un adelantado.
   </div>
 </div>
 
@@ -157,6 +181,21 @@ padding:8px 12px;font-size:11.5px;cursor:pointer;font-family:inherit;font-weight
   </div>
   <div class="note">Tocá cualquier día pasado para ver y corregir lo que hiciste.</div>
   <div id="dayedit"></div>
+</div>
+
+<button class="fab" id="fab" onclick="tOpen()" title="Temporizador pomodoro">▶</button>
+<div class="tmodal" id="tmodal">
+  <div class="tcard">
+    <div class="ph" id="tph">Foco</div>
+    <div class="clock" id="tclock">50:00</div>
+    <div class="sub" id="tsub"></div>
+    <div class="tbtns">
+      <button class="tbtn pri" id="tmain" onclick="tToggle()">Arrancar</button>
+      <button class="tbtn" onclick="tReset()">Reiniciar</button>
+    </div>
+    <div class="tcount" id="tcount"></div>
+    <button class="tclose" onclick="tClose()">Cerrar</button>
+  </div>
 </div>
 
 <div class="pane" id="p3">
@@ -237,6 +276,7 @@ var KN={pom:'Estudio',class:'Clase',gym:'Entrenamiento',kine:'Kinesiología',rea
 soc:'Biblioteca',psi:'Psicólogo',rest:'Descanso',plan:'Planificación'};
 var MODES=[{id:'baja',n:'Tranquila',f:.6},{id:'norm',n:'Normal',f:1},{id:'alta',n:'Parcial cerca',f:1.35}];
 var TECHO=4;
+var FOCO=50*60, DESC=10*60; // segundos: 50 min foco, 10 min descanso
 
 var K='rutina_v3';
 var S; try{S=JSON.parse(localStorage.getItem(K))||{log:{},carga:{},adel:{}};}catch(e){S={log:{},carga:{},adel:{}};}
@@ -450,6 +490,23 @@ function mAdel(n){
  hoy();
  if(document.getElementById('p1').classList.contains('on'))semana();
 }
+// completar un pomodoro: marca el próximo bloque de estudio libre de hoy;
+// si no quedan libres, suma un adelantado. Devuelve un texto de lo que hizo.
+function completarPomodoro(){
+ if(HK<'2026-08-03')return null;
+ var k=HK, libre=null;
+ bloques(HOY).forEach(function(b){
+  if(libre)return;
+  if(b.k==='pom' && est(k,b.id)!==2)libre=b;
+ });
+ var msg;
+ if(libre){ setEst(k,libre.id,2); msg='✓ '+libre.t; }
+ else { setAdel(HOY,adel(HOY)+1); msg='+1 adelantado'; }
+ hoy();
+ if(document.getElementById('p1').classList.contains('on'))semana();
+ if(document.getElementById('p2').classList.contains('on'))cal();
+ return msg;
+}
 
 function semana(){
  var mh='';
@@ -564,10 +621,72 @@ function exp(){var t=JSON.stringify(S);
  else prompt('Copiá:',t);}
 function wipe(){if(confirm('¿Borrar todo el historial?')){S={log:{},carga:{},adel:{}};save();hoy();}}
 
+// ---- temporizador pomodoro 50/10 ----
+// T.fase: 'foco'|'desc' · T.rest: segundos restantes · T.run: corriendo · T.fin: timestamp de fin · T.ciclos: focos completados en la sesión
+var T={fase:'foco',rest:FOCO,run:false,fin:0,ciclos:0};
+var tInt=null;
+function tDur(){return T.fase==='foco'?FOCO:DESC;}
+function tFmt(s){s=Math.max(0,Math.round(s));var m=Math.floor(s/60),ss=s%60;return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');}
+function tRender(){
+ var clock=document.getElementById('tclock'),ph=document.getElementById('tph'),sub=document.getElementById('tsub'),
+     main=document.getElementById('tmain'),fab=document.getElementById('fab'),cnt=document.getElementById('tcount');
+ clock.textContent=tFmt(T.rest);
+ var esFoco=T.fase==='foco';
+ ph.textContent=esFoco?'Foco':'Descanso';
+ ph.className='ph'+(esFoco?'':' brk');
+ sub.innerHTML=esFoco?'50 min de estudio. Al terminar, cuenta un pomodoro.':'10 min de pausa. No cuenta.';
+ main.textContent=T.run?'Pausar':(T.rest<tDur()?'Seguir':'Arrancar');
+ main.className='tbtn pri'+(T.run?' run':'');
+ cnt.textContent=T.ciclos>0?T.ciclos+' pomodoro'+(T.ciclos===1?'':'s')+' en esta sesión':'';
+ // botón flotante
+ fab.className='fab'+(T.run?(esFoco?' run':' brk'):'');
+ fab.innerHTML=T.run?'<span class="mini">'+tFmt(T.rest)+'</span>':'▶';
+}
+function tTick(){
+ if(!T.run)return;
+ T.rest=(T.fin-Date.now())/1000;
+ if(T.rest<=0){ T.rest=0; tRender(); tFin(); return; }
+ tRender();
+}
+function tToggle(){
+ if(HK<'2026-08-03'){alert('El plan arranca el 3 de agosto.');return;}
+ if(T.run){ // pausar
+  T.rest=(T.fin-Date.now())/1000; T.run=false; clearInterval(tInt); tInt=null;
+ } else { // arrancar/seguir
+  T.fin=Date.now()+T.rest*1000; T.run=true;
+  clearInterval(tInt); tInt=setInterval(tTick,250);
+ }
+ tRender();
+}
+function tReset(){
+ T.run=false; clearInterval(tInt); tInt=null; T.rest=tDur(); tRender();
+}
+function tFin(){
+ T.run=false; clearInterval(tInt); tInt=null;
+ var eraFoco=T.fase==='foco';
+ try{ if(navigator.vibrate)navigator.vibrate([200,100,200]); }catch(e){}
+ if(eraFoco){
+  T.ciclos++;
+  var msg=completarPomodoro();
+  T.fase='desc'; T.rest=DESC;
+  tRender();
+  if(msg)setTimeout(function(){alert('Pomodoro terminado — '+msg+'. Va un descanso de 10 min.');},50);
+ } else {
+  T.fase='foco'; T.rest=FOCO;
+  tRender();
+  setTimeout(function(){alert('Descanso terminado. Listo para otro pomodoro.');},50);
+ }
+}
+function tOpen(){document.getElementById('tmodal').classList.add('on');tRender();}
+function tClose(){document.getElementById('tmodal').classList.remove('on');}
+// cerrar tocando el fondo oscuro
+document.getElementById('tmodal').addEventListener('click',function(e){if(e.target===this)tClose();});
+
 if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
 }
 hoy();
+tRender();
 </script>
 </body>
 </html>
