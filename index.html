@@ -61,6 +61,14 @@ color:var(--mut);cursor:pointer;font-size:14px;font-family:inherit;font-weight:7
 .te .bsub{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--mut);margin-top:2px}
 .te .bb{display:flex;gap:5px;flex:none}
 .te .done{font-size:16px;color:var(--ok);flex:none}
+/* chip madrugón */
+.madchip{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);
+border-radius:11px;padding:8px 12px;font-size:12px;color:var(--mut);cursor:pointer;margin-bottom:10px;font-weight:600}
+.madchip.on{background:#2d2410;border-color:var(--gold);color:var(--gold)}
+.madchip .sw{width:30px;height:17px;border-radius:9px;background:var(--line);position:relative;flex:none;transition:background .15s}
+.madchip.on .sw{background:var(--gold)}
+.madchip .sw:after{content:'';position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:left .15s}
+.madchip.on .sw:after{left:15px}
 /* deuda */
 .deu{border-radius:13px;padding:12px;margin-bottom:9px;font-size:12.5px;line-height:1.5}
 .deu.ok{background:#1a2f24;border:1px solid #3a6b4e}
@@ -161,6 +169,7 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
   </div>
   <div id="deuda"></div>
   <h2 id="htit">Cronograma de hoy</h2>
+  <div id="madbox"></div>
   <div id="lista"></div>
   <div class="note">
     <b>Marcá el círculo lleno</b> si lo hiciste completo, o el <b>½</b> si lo hiciste a medias.
@@ -174,7 +183,7 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
 
 <div class="pane" id="p1">
   <h2>Carga de esta semana</h2>
-  <div class="note" style="margin-top:0">Elegí según cómo viene la semana. Ajusta cuántos pomodoros se esperan por día. <b>Semana fuerte</b> suma un madrugón de estudio (05:30 y 06:30) de lunes a viernes y más carga el fin de semana, para semanas de parcial.</div>
+  <div class="note" style="margin-top:0">Elegí según cómo viene la semana. <b>Parcial cerca</b> e <b>Intensivos</b> concentran la carga extra en viernes y fin de semana (donde hay más huecos), sin robarte horas de sueño de lunes a jueves. Si un día necesitás sí o sí más, activá el <b>madrugón</b> a mano en Hoy.</div>
   <div class="modes" id="modes"></div>
   <h2>Planificado vs. real</h2>
   <div id="sem"></div>
@@ -290,16 +299,18 @@ var PLAN={
 var KN={pom:'Estudio',class:'Clase',gym:'Entrenamiento',kine:'Kinesiología',read:'Lectura',
 soc:'Biblioteca',psi:'Psicólogo',rest:'Descanso',plan:'Planificación'};
 var EMO={pom:'📚',class:'🎓',gym:'🏋️',kine:'🧑‍⚕️',read:'📖',soc:'👥',psi:'🧠',rest:'😴',plan:'🗓️'};
-var MODES=[{id:'baja',n:'Tranquila',f:.6},{id:'norm',n:'Normal',f:1},{id:'alta',n:'Parcial cerca',f:1.35},{id:'fuerte',n:'Semana fuerte',f:1.6}];
+// f = factor lunes a jueves (respeta 7h de sueño, sin madrugar)
+// fw = factor viernes/sábado/domingo (donde hay más huecos; ahí cae la carga extra)
+var MODES=[{id:'baja',n:'Tranquila',f:.6,fw:.6},{id:'norm',n:'Normal',f:1,fw:1},
+{id:'alta',n:'Parcial cerca',f:1.2,fw:1.7},{id:'fuerte',n:'Intensivos',f:1.4,fw:2}];
 var TECHO=4;
 var FOCO=50*60, DESC=10*60; // segundos: 50 min foco, 10 min descanso
-// bloques de madrugón (solo modo fuerte, lun a vie): estudio temprano
-var MADRUGON=[{id:'mad-a',t:'Madrugón · estudio',h:'05:30–06:20',k:'pom',mad:1},
-{id:'mad-b',t:'Madrugón · estudio',h:'06:30–07:20',k:'pom',mad:1}];
+// madrugón manual: bloques de estudio temprano que el usuario activa por día (nunca automático)
+var MADRUGON=[{id:'mad-a',t:'Madrugón · estudio',h:'06:00–06:50',k:'pom',mad:1}];
 
 var K='rutina_v3';
-var S; try{S=JSON.parse(localStorage.getItem(K))||{log:{},carga:{},adel:{}};}catch(e){S={log:{},carga:{},adel:{}};}
-if(!S.log)S.log={}; if(!S.carga)S.carga={}; if(!S.adel)S.adel={};
+var S; try{S=JSON.parse(localStorage.getItem(K))||{log:{},carga:{},adel:{},mad:{}};}catch(e){S={log:{},carga:{},adel:{},mad:{}};}
+if(!S.log)S.log={}; if(!S.carga)S.carga={}; if(!S.adel)S.adel={}; if(!S.mad)S.mad={};
 function save(){try{localStorage.setItem(K,JSON.stringify(S));}catch(e){}}
 
 var INICIO=new Date(2026,7,3); INICIO.setHours(0,0,0,0);
@@ -318,23 +329,31 @@ document.getElementById('fecha').textContent=HOY.toLocaleDateString('es-AR',{wee
 function lunes(d){var x=new Date(d);var g=(x.getDay()+6)%7;x.setDate(x.getDate()-g);x.setHours(0,0,0,0);return x;}
 function wkey(d){return kf(lunes(d));}
 function modo(d){return S.carga[wkey(d)]||'norm';}
-function factor(d){var m=modo(d);for(var i=0;i<MODES.length;i++)if(MODES[i].id===m)return MODES[i].f;return 1;}
+// factor del día: viernes(5)/sábado(6)/domingo(0) usan fw (más carga donde hay huecos)
+function factor(d){
+ var m=modo(d),dow=d.getDay(),findeOViernes=(dow===5||dow===6||dow===0);
+ for(var i=0;i<MODES.length;i++)if(MODES[i].id===m)return findeOViernes?MODES[i].fw:MODES[i].f;
+ return 1;
+}
+// madrugón manual activado para ese día
+function tieneMad(d){return !!S.mad[kf(d)];}
+function setMad(d,on){var k=kf(d);if(on)S.mad[k]=1;else delete S.mad[k];save();}
 
 // pomodoros esperados ese dia segun carga
 function espera(d){
  var dow=d.getDay();
  var base=PLAN[dow].filter(function(b){return b.k==='pom';}).length;
  var e=Math.max(1,Math.round(base*factor(d)));
- // modo fuerte: sumar los 2 madrugones de estudio (lun-vie) a la meta del día
- if(modo(d)==='fuerte' && dow>=1 && dow<=5) e+=MADRUGON.length;
+ // madrugón manual: suma sus bloques a la meta del día (solo lun-vie)
+ if(tieneMad(d) && dow>=1 && dow<=5) e+=MADRUGON.length;
  return e;
 }
 function bloques(d){
  var arr=PLAN[d.getDay()].slice();
- var dow=d.getDay(), esFuerte=modo(d)==='fuerte';
- // modo fuerte: madrugón de estudio los días de semana (lun-vie)
+ var dow=d.getDay();
+ // madrugón manual (solo lun-vie): estudio temprano al inicio del día
  var mad=[];
- if(esFuerte && dow>=1 && dow<=5){
+ if(tieneMad(d) && dow>=1 && dow<=5){
   mad=MADRUGON.map(function(b){return {id:b.id,t:b.t,h:b.h,k:b.k,mad:1};});
   arr=mad.concat(arr);
  }
@@ -491,6 +510,12 @@ function hoy(){
  } else pre.innerHTML='';
 
  document.getElementById('htit').textContent='Cronograma · '+DL[HOY.getDay()];
+ // chip de madrugón manual (solo lun-vie)
+ var mbox=document.getElementById('madbox'),dowH=HOY.getDay();
+ if(dowH>=1 && dowH<=5){
+  var mon=tieneMad(HOY);
+  mbox.innerHTML='<div class="madchip'+(mon?' on':'')+'" onclick="toggleMad()">☀️ Madrugón '+(mon?'activado · +1 pom a las 06:00':'· sumar 1 estudio a las 06:00')+'<span class="sw"></span></div>';
+ } else mbox.innerHTML='';
  var bs=bloques(HOY),k=HK,html='<div class="tl">';
  bs.forEach(function(b){html+=filaTL(b,k);});
  html+='</div>';
@@ -545,6 +570,13 @@ function mAdel(n){
  hoy();
  if(document.getElementById('p1').classList.contains('on'))semana();
 }
+function toggleMad(){
+ var on=!tieneMad(HOY);
+ if(on && !confirm('¿Sumar un madrugón de estudio a las 06:00? Usalo solo si podés dormirte más temprano: no bajes de 7 horas de sueño.'))return;
+ setMad(HOY,on);
+ hoy();
+ if(document.getElementById('p1').classList.contains('on'))semana();
+}
 // completar un pomodoro: marca el próximo bloque de estudio libre de hoy;
 // si no quedan libres, suma un adelantado. Devuelve un texto de lo que hizo.
 function completarPomodoro(){
@@ -568,9 +600,8 @@ function semana(){
  MODES.forEach(function(m){
   var on=modo(HOY)===m.id;
   var tot=0;for(var i=0;i<7;i++){var d=new Date(lunes(HOY)),dw;d.setDate(d.getDate()+i);dw=d.getDay();
-   var e=Math.max(1,Math.round(PLAN[dw].filter(function(b){return b.k==='pom';}).length*m.f));
-   if(m.id==='fuerte' && dw>=1 && dw<=5)e+=MADRUGON.length;
-   tot+=e;}
+   var f=(dw===5||dw===6||dw===0)?m.fw:m.f;
+   tot+=Math.max(1,Math.round(PLAN[dw].filter(function(b){return b.k==='pom';}).length*f));}
   mh+='<div class="mode '+(on?'on':'')+'" onclick="setModo(\''+m.id+'\')">'+m.n+'<small>'+tot+' pom</small></div>';
  });
  document.getElementById('modes').innerHTML=mh;
@@ -676,7 +707,7 @@ function datos(){
 function exp(){var t=JSON.stringify(S);
  if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){alert('Copia en el portapapeles.');},function(){prompt('Copiá:',t);});
  else prompt('Copiá:',t);}
-function wipe(){if(confirm('¿Borrar todo el historial?')){S={log:{},carga:{},adel:{}};save();hoy();}}
+function wipe(){if(confirm('¿Borrar todo el historial?')){S={log:{},carga:{},adel:{},mad:{}};save();hoy();}}
 
 // ---- temporizador pomodoro 50/10 ----
 // T.fase: 'foco'|'desc' · T.rest: segundos restantes · T.run: corriendo · T.fin: timestamp de fin · T.ciclos: focos completados en la sesión
