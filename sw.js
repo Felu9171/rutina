@@ -1,4 +1,4 @@
-const CACHE='rutina-v8';
+const CACHE='rutina-v9';
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png'])).catch(()=>{}));
   self.skipWaiting();

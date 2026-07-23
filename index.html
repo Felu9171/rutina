@@ -229,9 +229,11 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
 </div>
 
 <div class="pane" id="p1">
+  <div id="semcab"></div>
   <h2>Carga de esta semana</h2>
   <div class="note" style="margin-top:0">Elegí según cómo viene la semana. <b>Parcial cerca</b> e <b>Intensivos</b> concentran la carga extra en viernes y fin de semana (donde hay más huecos), sin robarte horas de sueño de lunes a jueves. Si un día necesitás sí o sí más, activá el <b>madrugón</b> a mano en Hoy.</div>
   <div class="modes" id="modes"></div>
+  <div id="semplan"></div>
   <h2>Planificado vs. real</h2>
   <div id="sem"></div>
   <div class="lgd">
@@ -244,6 +246,7 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
 
 <div class="pane" id="p2">
   <div id="proximas"></div>
+  <div id="planmes"></div>
   <div class="mh"><button class="nav" onclick="mv(-1)">&lsaquo;</button><b id="mtit"></b><button class="nav" onclick="mv(1)">&rsaquo;</button></div>
   <div class="cal" id="cal"></div>
   <div class="lgd">
@@ -253,6 +256,7 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
   </div>
   <div class="note">Tocá cualquier día para ver el detalle: cargá parciales, finales, TPs o investigaciones, y en los días ya pasados corregí lo que hiciste.</div>
   <div id="dayedit"></div>
+  <div id="calsemanas"></div>
   <h2 style="margin-top:22px">Materias</h2>
   <div id="matlist"></div>
   <div style="display:flex;gap:6px;margin-top:4px">
@@ -699,41 +703,114 @@ function completarPomodoro(){
  return msg;
 }
 
+var semRef=new Date(HOY); // semana mostrada en la pestaña Semana
+function mismaSemana(a,b){return wkey(a)===wkey(b);}
 function semana(){
+ var Lref=lunes(semRef), esActual=mismaSemana(semRef,HOY);
+ // encabezado: si no es la semana actual, botón para volver + rango
+ var Dom=new Date(Lref);Dom.setDate(Dom.getDate()+6);
+ var cab='';
+ if(!esActual){
+  cab='<div class="prox" style="border-left:3px solid var(--pom);cursor:pointer;margin-bottom:10px" onclick="verSemana(new Date())">'+
+   '<div class="pi"><div class="pt">Semana del '+Lref.getDate()+'/'+(Lref.getMonth()+1)+' al '+Dom.getDate()+'/'+(Dom.getMonth()+1)+'</div>'+
+   '<div class="ps">tocá para volver a esta semana</div></div><span class="pe">↩</span></div>';
+ }
+ document.getElementById('semcab').innerHTML=cab;
+
  var mh='';
  MODES.forEach(function(m){
-  var on=modo(HOY)===m.id;
-  var tot=0;for(var i=0;i<7;i++){var d=new Date(lunes(HOY)),dw;d.setDate(d.getDate()+i);dw=d.getDay();
+  var on=(S.carga[wkey(semRef)]||'norm')===m.id;
+  var tot=0;for(var i=0;i<7;i++){var d=new Date(Lref),dw;d.setDate(d.getDate()+i);dw=d.getDay();
    var f=(dw===5||dw===6||dw===0)?m.fw:m.f;
    tot+=Math.max(1,Math.round(PLAN[dw].filter(function(b){return b.k==='pom';}).length*f));}
-  mh+='<div class="mode '+(on?'on':'')+'" onclick="setModo(\''+m.id+'\')">'+m.n+'<small>'+tot+' pom</small></div>';
+  mh+='<div class="mode '+(on?'on':'')+'" onclick="setModoSem(\''+m.id+'\')">'+m.n+'<small>'+tot+' pom</small></div>';
  });
  document.getElementById('modes').innerHTML=mh;
 
- var L=lunes(HOY),html='',tE=0,tH=0;
+ // plan sugerido de la semana (temas a estudiar según exámenes)
+ document.getElementById('semplan').innerHTML=planSemanaHTML(Lref);
+
+ var html='',tE=0,tH=0;
  for(var i=0;i<7;i++){
-  var d=new Date(L);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);
+  var d=new Date(Lref);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);
   var k=kf(d),dow=d.getDay(),bs=bloques(d).filter(function(b){return !b.opt;});
   var hecho=0,medio=0;
   bs.forEach(function(b){var v=est(k,b.id);if(v===2)hecho++;else if(v===1)medio++;});
-  var e=(dow===6||dow===0)?esperaFinde(d):espera(d),ph=pomHechos(d);
+  var e=espera(d),ph=pomHechos(d);
   if(d>=INICIO){tE+=e;tH+=ph;}
   var wf=bs.length?hecho/bs.length*100:0, wm=bs.length?medio/bs.length*100:0;
   var a=adel(d);
-  html+='<div class="pr"><div class="top"><div class="nm">'+DL[d.getDay()]+(k===HK?' · hoy':'')+
+  html+='<div class="pr" style="cursor:pointer" onclick="irADia(\''+k+'\')"><div class="top"><div class="nm">'+DL[d.getDay()]+(k===HK?' · hoy':'')+
    (a>0?' <span style="color:var(--pom);font-size:11px">+'+(a%1?a.toFixed(1):a)+' adel</span>':'')+'</div>'+
-   '<div class="vv">'+(ph%1?ph.toFixed(1):ph)+'/'+e+' pom</div></div>'+
+   '<div class="vv">'+(ph%1?ph.toFixed(1):ph)+'/'+e+' pom ›</div></div>'+
    '<div class="bar"><i style="width:'+wf+'%;background:var(--ok)"></i><i style="width:'+wm+'%;background:var(--gold)"></i></div></div>';
  }
  document.getElementById('sem').innerHTML=html;
  var pend=Math.max(0,tE-tH);
- var sup=superSemana()?'<div class="super" style="margin-top:12px"><span class="cr">🔥</span> <b>Super semana.</b> Superaste la meta de esta carga ('+metaSemana()+' pom). Vas por encima de lo planificado.</div>':'';
- document.getElementById('resumen').innerHTML=sup+'<div class="note"><b>'+(tH%1?tH.toFixed(1):tH)+' de '+tE+' pomodoros</b> en la semana'+
-  (superSemana()?' · super semana':pend>0?' · faltan '+(pend%1?pend.toFixed(1):pend):' · completa')+'.<br><br>'+
-  'Cambiar la carga recalcula todo: en modo Tranquila se esperan menos pomodoros por día, así que no generás deuda falsa en semanas livianas.<br><br>'+
-  'Si adelantás estudio un día de semana (botón <b>+</b> en Hoy), primero cancela deuda y después baja la meta del fin de semana.</div>';
+ document.getElementById('resumen').innerHTML='<div class="note"><b>'+(tH%1?tH.toFixed(1):tH)+' de '+tE+' pomodoros</b> en la semana'+
+  (pend>0?' · faltan '+(pend%1?pend.toFixed(1):pend):' · completa')+'.<br><br>'+
+  'Tocá cualquier día para ir a su detalle. Cambiar la carga recalcula todo: en Tranquila se esperan menos pomodoros por día.</div>';
 }
-function setModo(m){S.carga[wkey(HOY)]=m;save();semana();hoy();}
+function setModoSem(m){S.carga[wkey(semRef)]=m;save();semana();hoy();}
+function verSemana(d){semRef=new Date(d);semRef.setHours(0,0,0,0);go(1);}
+// ---- planificador de estudio según exámenes ----
+// temas pendientes de un examen (todo lo que no está en visto ni dominado)
+function pendientesEv(evId){var ts=temasDeEv(evId),p=0;ts.forEach(function(x){if(x.st===0||x.st===2)p++;});return p;}
+// semanas restantes hasta una fecha (mínimo 1)
+function semanasHasta(k){return Math.max(1,Math.ceil(diasHasta(k)/7));}
+// plan por examen: [{ev, mat, pend, sem, porSem}]
+function planPorExamen(){
+ var a=[];
+ for(var id in S.evs){var ev=S.evs[id];if(diasHasta(ev.fecha)<0)continue;
+  var pend=pendientesEv(id);if(pend<=0 && temasDeEv(id).length===0)continue; // sin temas cargados: no planifica
+  var sem=semanasHasta(ev.fecha),porSem=Math.ceil(pend/sem);
+  a.push({ev:ev,mat:matById(ev.mat),pend:pend,sem:sem,porSem:porSem,dias:diasHasta(ev.fecha)});
+ }
+ a.sort(function(x,y){return x.dias-y.dias;});
+ return a;
+}
+// sugerir modo de carga según cuántos temas por semana hay que encarar en total
+function sugerirModo(){
+ var tot=0;planPorExamen().forEach(function(p){tot+=p.porSem;});
+ if(tot<=2)return {id:'norm',n:'Normal',porSem:tot};
+ if(tot<=4)return {id:'alta',n:'Parcial cerca',porSem:tot};
+ return {id:'fuerte',n:'Intensivos',porSem:tot};
+}
+// resumen para la pestaña Mes
+function planMesHTML(){
+ var pl=planPorExamen();
+ if(!pl.length)return '<div class="note" style="margin-top:0">Cargá temas a tus exámenes (pestaña Temas) y acá te digo cuántos por semana necesitás para llegar.</div>';
+ var sug=sugerirModo();
+ var h='<h2 style="margin-top:0">Plan para llegar</h2>';
+ h+='<div class="prox" style="border-left:3px solid var(--gold);margin-bottom:9px"><div class="pi"><div class="pt">Modo sugerido: '+sug.n+'</div>'+
+  '<div class="ps">'+sug.porSem+' tema'+(sug.porSem===1?'':'s')+' de estudio por semana en total, entre todos tus exámenes</div></div><span class="pe">🎯</span></div>';
+ pl.forEach(function(p){
+  var mm=p.mat,tp=TIPOS[p.ev.tipo]||{n:p.ev.tipo,e:'•'};
+  h+='<div class="prox" style="border-left:3px solid '+(mm?mm.c:'#8a94a1')+'" onclick="irADia(\''+p.ev.fecha+'\')">'+
+   '<div class="cd2"><b>'+p.porSem+'</b><small>x sem</small></div>'+
+   '<div class="pi"><div class="pt">'+tp.e+' '+(mm?mm.n:'?')+'</div>'+
+   '<div class="ps">'+p.pend+' temas en '+p.sem+' semana'+(p.sem===1?'':'s')+' · faltan '+p.dias+'d</div></div>'+
+   '<span class="pe">'+tp.e+'</span></div>';
+ });
+ return h;
+}
+// detalle para una semana concreta (la mostrada en pestaña Semana)
+function planSemanaHTML(Lref){
+ var pl=planPorExamen();
+ if(!pl.length)return '';
+ // exámenes cuya fecha es igual o posterior al lunes de esta semana (o sea, sigue siendo relevante estudiarlos)
+ var Ldom=new Date(Lref);Ldom.setDate(Ldom.getDate()+6);Ldom.setHours(0,0,0,0);
+ var relevantes=pl.filter(function(p){var pp=p.ev.fecha.split('-');var fd=new Date(+pp[0],+pp[1]-1,+pp[2]);fd.setHours(0,0,0,0);return fd>=Lref;});
+ if(!relevantes.length)return '';
+ var h='<div class="prox" style="border-left:3px solid var(--pom);margin:10px 0 4px"><div class="pi"><div class="pt">Esta semana toca</div>'+
+  '<div class="ps">para llegar a tus exámenes</div></div><span class="pe">📚</span></div>';
+ relevantes.forEach(function(p){var mm=p.mat,tp=TIPOS[p.ev.tipo]||{n:p.ev.tipo,e:'•'};
+  h+='<div class="tema" style="cursor:default"><span class="stx" style="border-color:'+(mm?mm.c:'#8a94a1')+';color:'+(mm?mm.c:'#8a94a1')+'">'+p.porSem+'</span>'+
+   '<span class="ttx">'+(mm?mm.n:'?')+' · '+tp.n+'</span>'+
+   '<span class="es" style="flex:none">faltan '+p.dias+'d</span></div>';
+ });
+ return h;
+}
 
 function cal(){
  document.getElementById('mtit').textContent=mes.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
@@ -755,7 +832,23 @@ function cal(){
    (evd.length?'<div class="evs">'+pts+'</div>':(p!==null?'<div class="pc">'+p+'%</div>':''))+'</div>';
  }
  document.getElementById('cal').innerHTML=h;
+ // navegación a semanas del mes visible
+ var semwrap=document.getElementById('calsemanas');
+ if(semwrap){
+  var sh='<div class="ent" style="margin:14px 0 6px">Ver una semana en detalle</div>';
+  var primero=new Date(mes.getFullYear(),mes.getMonth(),1);
+  var Ls=lunes(primero), fin=new Date(mes.getFullYear(),mes.getMonth()+1,0);
+  var wi=1;
+  for(var wd=new Date(Ls); wd<=fin; wd.setDate(wd.getDate()+7)){
+   var L2=new Date(wd),D2=new Date(wd);D2.setDate(D2.getDate()+6);
+   sh+='<div class="matrow" style="cursor:pointer" onclick="verSemana(new Date('+L2.getFullYear()+','+L2.getMonth()+','+L2.getDate()+'))">'+
+    '<div class="mn">Semana '+(wi++)+' · '+L2.getDate()+'/'+(L2.getMonth()+1)+' a '+D2.getDate()+'/'+(D2.getMonth()+1)+'</div>'+
+    '<span style="color:var(--mut);font-size:16px">›</span></div>';
+  }
+  semwrap.innerHTML=sh;
+ }
  proximas();
+ var pm=document.getElementById('planmes');if(pm)pm.innerHTML=planMesHTML();
  matlist();
 }
 function mv(n){mes=new Date(mes.getFullYear(),mes.getMonth()+n,1);cal();}
@@ -765,6 +858,7 @@ function dayedit(k){
  var p=k.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);d.setHours(0,0,0,0);
  var pas=(d<=HOY&&d>=INICIO);
  var h='<h2>'+d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})+'</h2>';
+ h+='<div class="matrow" style="cursor:pointer;margin-bottom:10px" onclick="verSemana(new Date('+d.getFullYear()+','+d.getMonth()+','+d.getDate()+'))"><div class="mn">📅 Ver la semana de este día</div><span style="color:var(--mut);font-size:16px">›</span></div>';
  // eventos del día
  var evd=evsDia(k);
  if(evd.length){
