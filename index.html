@@ -103,6 +103,36 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;cur
 .cell.f{background:#1a2f24;border-color:#3a6b4e}
 .cell.p{background:#2a2718;border-color:#5e5a30}
 .cell.z{background:#2e2024;border-color:#5c3239}
+.cell.sel{border-color:var(--pom);border-width:2px}
+.cell .evs{display:flex;gap:2px;margin-top:2px;height:5px;justify-content:center}
+.cell .evs i{width:5px;height:5px;border-radius:50%;display:block}
+/* eventos del día / formulario */
+.evrow{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:7px}
+.evrow .ec{width:4px;align-self:stretch;border-radius:3px;flex:none}
+.evrow .ei{flex:1;min-width:0}
+.evrow .et{font-weight:700;font-size:13px}
+.evrow .es{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--mut);margin-top:2px}
+.evrow .del{background:none;border:none;color:var(--bad);font-size:16px;cursor:pointer;flex:none;padding:2px 4px}
+.efield{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 10px;font-size:13px;font-family:inherit;margin-bottom:7px}
+.echips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.echip{padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--mut);font-size:11.5px;cursor:pointer;font-weight:600}
+.echip.on{border-color:var(--pom);background:#1d2942;color:var(--ink)}
+/* lo que se viene */
+.prox{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:0 12px 12px 0;padding:11px 12px;margin-bottom:7px}
+.prox .cd2{text-align:center;flex:none;width:42px}
+.prox .cd2 b{font-size:20px;font-weight:800;color:var(--ink);line-height:1;display:block}
+.prox .cd2 small{font-size:8px;color:var(--mut);font-family:"IBM Plex Mono",monospace}
+.prox .pi{flex:1;min-width:0}
+.prox .pt{font-size:13px;font-weight:700}
+.prox .ps{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--mut);margin-top:2px}
+.prox .pe{font-size:16px;flex:none}
+.prox.urg .cd2 b{color:var(--bad)}
+.prox.soon .cd2 b{color:var(--gold)}
+/* materias */
+.matrow{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:6px}
+.matrow .mc{width:12px;height:12px;border-radius:50%;flex:none}
+.matrow .mn{flex:1;font-weight:600;font-size:13px}
+.matrow .del{background:none;border:none;color:var(--bad);font-size:15px;cursor:pointer;padding:2px 4px}
 .note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px;
 font-size:11.5px;color:var(--mut);line-height:1.6;margin-top:12px}
 .note b{color:var(--ink)}
@@ -196,6 +226,7 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
 </div>
 
 <div class="pane" id="p2">
+  <div id="proximas"></div>
   <div class="mh"><button class="nav" onclick="mv(-1)">&lsaquo;</button><b id="mtit"></b><button class="nav" onclick="mv(1)">&rsaquo;</button></div>
   <div class="cal" id="cal"></div>
   <div class="lgd">
@@ -203,8 +234,14 @@ background:var(--card2);color:var(--ink);font-size:14px;font-weight:700;cursor:p
     <span><i class="sq" style="background:#2a2718;border:1px solid #5e5a30"></i>40-80%</span>
     <span><i class="sq" style="background:#2e2024;border:1px solid #5c3239"></i>Menos de 40%</span>
   </div>
-  <div class="note">Tocá cualquier día pasado para ver y corregir lo que hiciste.</div>
+  <div class="note">Tocá cualquier día para ver el detalle: cargá parciales, finales, TPs o investigaciones, y en los días ya pasados corregí lo que hiciste.</div>
   <div id="dayedit"></div>
+  <h2 style="margin-top:22px">Materias</h2>
+  <div id="matlist"></div>
+  <div style="display:flex;gap:6px;margin-top:4px">
+    <input class="efield" id="newmat" placeholder="Nueva materia (ej. final de septiembre)" style="margin-bottom:0">
+    <button class="btn" onclick="addMatUI()" style="flex:none">Agregar</button>
+  </div>
 </div>
 
 <button class="fab" id="fab" onclick="tOpen()" title="Temporizador pomodoro">▶</button>
@@ -309,9 +346,31 @@ var FOCO=50*60, DESC=10*60; // segundos: 50 min foco, 10 min descanso
 var MADRUGON=[{id:'mad-a',t:'Madrugón · estudio',h:'06:00–06:50',k:'pom',mad:1}];
 
 var K='rutina_v3';
-var S; try{S=JSON.parse(localStorage.getItem(K))||{log:{},carga:{},adel:{},mad:{}};}catch(e){S={log:{},carga:{},adel:{},mad:{}};}
+var S; try{S=JSON.parse(localStorage.getItem(K))||{};}catch(e){S={};}
 if(!S.log)S.log={}; if(!S.carga)S.carga={}; if(!S.adel)S.adel={}; if(!S.mad)S.mad={};
+if(!S.evs)S.evs={}; // eventos por id: {id:{fecha,tipo,mat,tit}}
+// materias precargadas la primera vez
+if(!S.mats){
+ S.mats=[
+  {id:'econ',n:'Econometría I',c:'#f4746b'},
+  {id:'mone',n:'Economía Monetaria',c:'#5b8def'},
+  {id:'macro',n:'Macroeconomía II',c:'#8b7cf0'},
+  {id:'reg',n:'Economía Regional',c:'#3fc78a'}
+ ];
+}
 function save(){try{localStorage.setItem(K,JSON.stringify(S));}catch(e){}}
+// paleta para materias nuevas
+var MATCOL=['#e07dc4','#5ec5e8','#ff7a45','#f0c14b','#3fc78a','#8b7cf0','#5b8def','#f4746b'];
+// tipos de evento
+var TIPOS={parcial:{n:'Parcial',e:'📕'},final:{n:'Final',e:'🎓'},tp:{n:'TP',e:'📝'},inv:{n:'Investigación',e:'🔬'}};
+function matById(id){for(var i=0;i<S.mats.length;i++)if(S.mats[i].id===id)return S.mats[i];return null;}
+function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+// eventos ordenados por fecha
+function evsList(){var a=[];for(var k in S.evs)a.push(S.evs[k]);a.sort(function(x,y){return x.fecha<y.fecha?-1:x.fecha>y.fecha?1:0;});return a;}
+function evsDia(k){var a=[];for(var id in S.evs)if(S.evs[id].fecha===k)a.push(S.evs[id]);return a;}
+function addEv(fecha,tipo,mat,tit){var id=uid();S.evs[id]={id:id,fecha:fecha,tipo:tipo,mat:mat,tit:tit||''};save();return id;}
+function delEv(id){delete S.evs[id];save();}
+function diasHasta(k){var p=k.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);d.setHours(0,0,0,0);return Math.round((d-HOY)/86400000);}
 
 var INICIO=new Date(2026,7,3); INICIO.setHours(0,0,0,0);
 var HOY=new Date(); HOY.setHours(0,0,0,0);
@@ -639,23 +698,107 @@ function cal(){
  for(var i=0;i<start;i++)h+='<div class="cell off"></div>';
  for(var n=1;n<=last;n++){
   var d=new Date(mes.getFullYear(),mes.getMonth(),n);d.setHours(0,0,0,0);
-  var k=kf(d),fut=(d>HOY||d<INICIO),p=fut?null:pctDia(d);
+  var k=kf(d),pas=(d<=HOY&&d>=INICIO),p=pas?pctDia(d):null;
   var c='cell';
-  if(fut)c+=' off';
-  else if(p!==null)c+=(p>=80?' f':p>=40?' p':' z');
+  if(p!==null)c+=(p>=80?' f':p>=40?' p':' z');
   if(k===HK)c+=' today';
-  h+='<div class="'+c+'"'+(fut?'':' onclick="pick(\''+k+'\')"')+'><div class="n">'+n+'</div>'+
-   (fut?'':'<div class="pc">'+(p===null?'':p+'%')+'</div>')+'</div>';
+  if(k===sel)c+=' sel';
+  // puntos de evento (color por materia)
+  var evd=evsDia(k),pts='';
+  evd.slice(0,4).forEach(function(ev){var mm=matById(ev.mat);pts+='<i style="background:'+(mm?mm.c:'#8a94a1')+'"></i>';});
+  h+='<div class="'+c+'" onclick="pick(\''+k+'\')"><div class="n">'+n+'</div>'+
+   (evd.length?'<div class="evs">'+pts+'</div>':(p!==null?'<div class="pc">'+p+'%</div>':''))+'</div>';
  }
  document.getElementById('cal').innerHTML=h;
+ proximas();
+ matlist();
 }
 function mv(n){mes=new Date(mes.getFullYear(),mes.getMonth()+n,1);cal();}
-function pick(k){sel=k;dayedit(k);}
+function pick(k){sel=k;cal();dayedit(k);document.getElementById('dayedit').scrollIntoView({behavior:'smooth',block:'nearest'});}
+var evForm={tipo:'parcial',mat:null};
 function dayedit(k){
  var p=k.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);d.setHours(0,0,0,0);
+ var pas=(d<=HOY&&d>=INICIO);
  var h='<h2>'+d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})+'</h2>';
- bloques(d).forEach(function(b){h+=fila(b,k,1);});
+ // eventos del día
+ var evd=evsDia(k);
+ if(evd.length){
+  evd.forEach(function(ev){var mm=matById(ev.mat),tp=TIPOS[ev.tipo]||{n:ev.tipo,e:'•'};
+   h+='<div class="evrow"><div class="ec" style="background:'+(mm?mm.c:'#8a94a1')+'"></div>'+
+    '<div class="ei"><div class="et">'+tp.e+' '+tp.n+' · '+(mm?mm.n:'?')+'</div>'+
+    '<div class="es">'+(ev.tit?ev.tit:'sin detalle')+'</div></div>'+
+    '<button class="del" onclick="delEvUI(\''+ev.id+'\',\''+k+'\')">✕</button></div>';});
+ }
+ // formulario para agregar evento
+ if(!evForm.mat && S.mats.length)evForm.mat=S.mats[0].id;
+ h+='<div style="margin-top:10px">';
+ h+='<div class="echips">';
+ Object.keys(TIPOS).forEach(function(t){h+='<div class="echip'+(evForm.tipo===t?' on':'')+'" onclick="evFT(\''+t+'\',\''+k+'\')">'+TIPOS[t].e+' '+TIPOS[t].n+'</div>';});
+ h+='</div><div class="echips">';
+ S.mats.forEach(function(m){h+='<div class="echip'+(evForm.mat===m.id?' on':'')+'" onclick="evFM(\''+m.id+'\',\''+k+'\')" style="'+(evForm.mat===m.id?'border-color:'+m.c+';color:'+m.c:'')+'">'+m.n+'</div>';});
+ h+='</div>';
+ h+='<input class="efield" id="evtit" placeholder="Detalle (opcional): ej. hasta unidad 4" value="">';
+ h+='<button class="btn" style="background:var(--pom);border-color:var(--pom);color:#fff" onclick="addEvUI(\''+k+'\')">Agregar al '+d.getDate()+'/'+(d.getMonth()+1)+'</button>';
+ h+='</div>';
+ // bloques del día (marcado), solo días del plan ya iniciado
+ if(pas){
+  h+='<h2 style="margin-top:18px">Cumplimiento del día</h2>';
+  bloques(d).forEach(function(b){h+=fila(b,k,1);});
+ }
  document.getElementById('dayedit').innerHTML=h;
+}
+function evFT(t,k){evForm.tipo=t;dayedit(k);}
+function evFM(m,k){evForm.mat=m;dayedit(k);}
+function addEvUI(k){
+ var tit=document.getElementById('evtit');tit=tit?tit.value.trim():'';
+ addEv(k,evForm.tipo,evForm.mat,tit);
+ cal();dayedit(k);
+}
+function delEvUI(id,k){if(confirm('¿Borrar este evento?')){delEv(id);cal();dayedit(k);proximas();}}
+// "Lo que se viene": próximos eventos (de hoy en adelante) ordenados por cercanía
+function proximas(){
+ var box=document.getElementById('proximas');if(!box)return;
+ var futuros=evsList().filter(function(ev){return diasHasta(ev.fecha)>=0;});
+ if(!futuros.length){box.innerHTML='<div class="note" style="margin-top:0">Sin fechas cargadas. Tocá un día del calendario para agregar un parcial, final, TP o investigación.</div>';return;}
+ var h='<h2 style="margin-top:0">Lo que se viene</h2>';
+ futuros.slice(0,6).forEach(function(ev){
+  var dd=diasHasta(ev.fecha),mm=matById(ev.mat),tp=TIPOS[ev.tipo]||{n:ev.tipo,e:'•'};
+  var cls=dd<=5?'urg':dd<=14?'soon':'';
+  var p=ev.fecha.split('-'),fd=new Date(+p[0],+p[1]-1,+p[2]);
+  h+='<div class="prox '+cls+'" style="border-left:3px solid '+(mm?mm.c:'#8a94a1')+'" onclick="irADia(\''+ev.fecha+'\')">'+
+   '<div class="cd2"><b>'+dd+'</b><small>'+(dd===1?'día':'días')+'</small></div>'+
+   '<div class="pi"><div class="pt">'+tp.n+' · '+(mm?mm.n:'?')+'</div>'+
+   '<div class="ps">'+fd.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'})+(ev.tit?' · '+ev.tit:'')+'</div></div>'+
+   '<span class="pe">'+tp.e+'</span></div>';
+ });
+ box.innerHTML=h;
+}
+function irADia(k){var p=k.split('-');mes=new Date(+p[0],+p[1]-1,1);cal();pick(k);}
+// materias
+function matlist(){
+ var box=document.getElementById('matlist');if(!box)return;
+ var h='';
+ S.mats.forEach(function(m){
+  h+='<div class="matrow"><div class="mc" style="background:'+m.c+'"></div><div class="mn">'+m.n+'</div>'+
+   '<button class="del" onclick="delMatUI(\''+m.id+'\')">✕</button></div>';
+ });
+ box.innerHTML=h||'<div class="note">Sin materias.</div>';
+}
+function addMatUI(){
+ var inp=document.getElementById('newmat');var nm=inp?inp.value.trim():'';
+ if(!nm)return;
+ var col=MATCOL[S.mats.length%MATCOL.length];
+ S.mats.push({id:uid(),n:nm,c:col});save();
+ if(inp)inp.value='';
+ matlist();dayedit(sel||HK);
+}
+function delMatUI(id){
+ var usada=false;for(var e in S.evs)if(S.evs[e].mat===id)usada=true;
+ var msg=usada?'Esta materia tiene fechas cargadas. ¿Borrarla igual? (las fechas quedan sin materia)':'¿Borrar esta materia?';
+ if(!confirm(msg))return;
+ S.mats=S.mats.filter(function(m){return m.id!==id;});
+ if(evForm.mat===id)evForm.mat=S.mats.length?S.mats[0].id:null;
+ save();matlist();if(sel)dayedit(sel);proximas();
 }
 
 function datos(){
